@@ -45,6 +45,7 @@ typedef struct
 
         // if not in use, point to next free node
         ptr next_free;
+        ptr _data[2];
     };
     // number of references to this node, 0 == unused
     int refs;

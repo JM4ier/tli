@@ -364,7 +364,66 @@ ptr eval_elems(ptr is)
     }
 }
 
-int main()
+int is_numeric(char c) {
+    return c >= '0' && c <= '9';
+}
+
+int is_whitespace(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
+int is_paren(char c) {
+    return c == '(' || c == ')';
+}
+
+ptr parse_list(char **input);
+
+ptr parse(char **input) {
+    assert(**input && "unexpected EOF");
+    while (is_whitespace(**input)) {
+        ++*input;
+    }
+    if (is_numeric(**input)) {
+        int num = 0;
+        while (is_numeric(**input)) {
+            printf("num = %d\n", num);
+            num *= 10;
+            num += (**input) - '0';
+            ++*input;
+        }
+        return new_int(num);
+    } else if (**input == ')') {
+        ++*input;
+        return new_nil();
+    } else if (**input == '(') {
+        ++*input;
+        return parse_list(input);
+    } else {
+        // symbol
+        char *begin = *input;
+        while (!is_whitespace(**input) && !is_paren(**input)) {
+            ++*input;
+        }
+        char buf[16] = {0};
+        memcpy(buf, begin, *input-begin);
+        ptr sym = new_symbol(buf);
+        return sym;
+    }
+}
+
+ptr parse_list(char **input) {
+    assert(**input && "unexpected EOF");
+    if (**input == ')') {
+        ++*input;
+        return new_nil();
+    } else {
+        ptr head = parse(input);
+        ptr tail = parse_list(input);
+        return new_cons(head, tail);
+    }
+}
+
+signed main()
 {
     init();
     printf("%s %s\n", kind_str(T_NIL), kind_str(T_SYM));
@@ -391,6 +450,10 @@ int main()
 
     println(eval(fun));
     println(eval(new_cons(sqr, new_cons(new_int(5), new_nil()))));
+
+    char expr[] = "(.\\ (y) (* y y))";
+    char *expr_ref = expr;
+    println(parse(&expr_ref));
 
     return 0;
 }
