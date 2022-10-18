@@ -2,60 +2,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
-#define ptr int64_t
-#define int int64_t
-
-#define assert(x)                                                        \
-    do                                                                   \
-    {                                                                    \
-        if (!(x))                                                        \
-        {                                                                \
-            printf("Assertion failed on line %d: `%s`\n", __LINE__, #x); \
-            exit(-2);                                                    \
-        }                                                                \
-    } while (0)
-
-#define true 1
-#define false 0
-
-#define T_POO 0 // garbage value
-#define T_NIL 1 // NIL
-#define T_INT 2 // integer
-#define T_CON 3 // cons, i.e. a pair
-#define T_SYM 4 // symbol
-#define T_EMT 5 // empty
-
-typedef struct
-{
-    // Contents of a node
-    union
-    {
-        // integer value
-        int value;
-        struct
-        {
-            // head of cons
-            ptr head;
-            // tail of cons
-            ptr tail;
-        };
-        // pointer to the symbol
-        char *symbol;
-
-        // if not in use, point to next free node
-        ptr next_free;
-    };
-    // number of references to this node, 0 == unused
-    int refs;
-    // kind of node
-    int kind;
-} node_t;
+#include "defs.h"
 
 static node_t mem[100000] = {0};
 static ptr empty = 2;
-static char symbols[10000] = {0};
-static ptr symbols_end = 0;
+#define SYM_LEN 1024
+static sym_t symbols[SYM_LEN] = {0};
 
 char *kind_str(int kind)
 {
@@ -148,24 +100,24 @@ ptr new_symbol(char *symbol)
     ptr i = alloc();
     mem[i].kind = T_SYM;
 
+    for (ptr k = 0; k < SYM_LEN; k++)
     {
-        char *p = symbols;
-        int len = 0;
-        while ((len = strlen(p)) > 0)
+        if (strlen(symbols[k].name) == 0)
         {
-            if (!strcmp(p, symbol))
-            {
-                mem[i].symbol = p;
-                return i;
-            }
-            p += len;
+            int len = strlen(symbol);
+            assert(len > 0 && len < 16);
+            strcpy(symbols[k].name, symbol);
+            mem[i].symbol = k;
+            return i;
+        }
+        else if (!strcmp(symbols[k].name, symbol))
+        {
+            mem[i].symbol = k;
+            return i;
         }
     }
 
-    mem[i].symbol = &symbols[symbols_end];
-    while (symbols[symbols_end++] = *symbol++)
-        ;
-    return i;
+    assert(false && "Out of Symbols.");
 }
 
 int get_int(ptr i)
@@ -186,7 +138,7 @@ ptr get_tail(ptr i)
     return mem[i].tail;
 }
 
-char *get_symbol(ptr i)
+ptr get_symbol(ptr i)
 {
     assert(mem[i].kind == T_SYM);
     return mem[i].symbol;
@@ -272,7 +224,7 @@ void print(ptr i)
         printf("nil");
         return;
     case T_SYM:
-        printf("%s", get_symbol(i));
+        printf("%s", symbols[get_symbol(i)].name);
         return;
     }
     assert(mem[i].kind == T_CON);
@@ -312,7 +264,7 @@ ptr eval(ptr i)
     case T_CON:
         assert(false && "pls implement function evaluation");
     default:
-        assert(false && "unreachcable");
+        assert(false && "unreachable");
     }
 }
 
