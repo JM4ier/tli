@@ -163,7 +163,7 @@ ptr get_nil(ptr i) {
     return 0;
 }
 
-int eq(ptr a, ptr b) {
+ptr eq(ptr a, ptr b) {
     if (mem[a].kind != mem[b].kind)
         return new_nil();
     switch (mem[a].kind) {
@@ -197,7 +197,6 @@ ptr name(ptr a) {\
         return new_true();\
     }\
 }
-
 _ORD_(lt, <)
 _ORD_(gt, >)
 _ORD_(lte, <=)
@@ -248,6 +247,20 @@ void println(ptr i) {
     printf("\n");
 }
 
+ptr eval(ptr i) {
+    switch (mem[i].kind) {
+        case T_NIL:
+        case T_INT:
+            return i;
+        case T_SYM:
+            assert(false && "pls implement symbol lookup");
+        case T_CON:
+            assert(false && "pls implement function evaluation");
+        default:
+            assert(false && "unreachcable");
+    }
+}
+
 int main() {
     init();
     printf("%s %s\n", kind_str(T_NIL), kind_str(T_SYM));
@@ -263,5 +276,6 @@ int main() {
         new_cons(new_int(43),
         new_nil())))].kind != T_NIL);
     assert(eq(new_symbol("hello"), new_symbol("hello")));
+    println(eval(new_int(42)));
     return 0;
 }
