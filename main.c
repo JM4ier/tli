@@ -5,7 +5,7 @@
 #include "defs.h"
 
 static node_t mem[100000] = {0};
-static ptr empty = 2;
+static ptr empty = 3;
 #define SYM_LEN 1024
 static sym_t symbols[SYM_LEN] = {0};
 
@@ -23,14 +23,17 @@ char *kind_str(int kind)
 void init()
 {
     mem[0].kind = T_NIL;
-    mem[0].refs = 999;
+    mem[0].refs = 1;
 
     mem[1].kind = T_INT;
-    mem[1].refs = 999;
+    mem[1].refs = 1;
     mem[1].value = 1;
 
+    mem[2].kind = T_POO;
+    mem[2].refs = 1;
+
     int len = sizeof(mem) / sizeof(mem[0]);
-    for (int i = 2; i < len; ++i)
+    for (int i = 3; i < len; ++i)
     {
         mem[i].kind = T_EMT;
         if (i < len - 1)
@@ -108,6 +111,7 @@ ptr new_symbol(char *symbol)
             assert(len > 0 && len < 16);
             strcpy(symbols[k].name, symbol);
             mem[i].symbol = k;
+            symbols[k].binding = 2; // point to garbage
             return i;
         }
         else if (!strcmp(symbols[k].name, symbol))
@@ -148,6 +152,11 @@ ptr get_nil(ptr i)
 {
     assert(mem[i].kind == T_NIL);
     return 0;
+}
+
+void new_binding(ptr symbol, ptr expression)
+{
+    symbols[get_symbol(symbol)].binding = expression;
 }
 
 ptr eq(ptr a, ptr b)
@@ -260,7 +269,10 @@ ptr eval(ptr i)
     case T_INT:
         return i;
     case T_SYM:
-        assert(false && "pls implement symbol lookup");
+        ptr sym = get_symbol(i);
+        ptr bind = symbols[sym].binding;
+        assert(mem[bind].kind != T_POO && "unbound variable");
+        return bind;
     case T_CON:
         assert(false && "pls implement function evaluation");
     default:
@@ -286,5 +298,7 @@ int main()
                .kind != T_NIL);
     assert(eq(new_symbol("hello"), new_symbol("hello")));
     println(eval(new_int(42)));
+    new_binding(sym, new_int(100));
+    println(eval(sym));
     return 0;
 }
