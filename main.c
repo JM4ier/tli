@@ -9,7 +9,7 @@ static ptr empty = 0;
 #define SYM_LEN 1024
 static sym_t symbols[SYM_LEN] = {0};
 
-static ptr sym_lambda;
+static ptr sym_lambda = 0;
 
 ptr new_symbol(char *);
 
@@ -106,6 +106,11 @@ ptr new_symbol(char *symbol)
     if (!strcmp(symbol, "nil") || !strcmp(symbol, "NIL"))
     {
         return 0;
+    }
+
+    if (sym_lambda && (!strcmp(symbol, ".\\") || !strcmp(symbol, "lambda") || !strcmp(symbol, "LAMBDA")))
+    {
+        return sym_lambda;
     }
 
     ptr i = alloc();
@@ -320,7 +325,11 @@ ptr eval(ptr i)
     case T_SYM:
         ptr sym = get_symbol(i);
         ptr bind = symbols[sym].binding;
-        assert(mem[bind].kind != T_POO && "unbound variable");
+        if (mem[bind].kind == T_POO)
+        {
+            printf("`%s` is unbound.\n", symbols[sym].name);
+            assert(false);
+        }
         return bind;
     case T_CON:
         if (get_head(i) == sym_lambda)
@@ -364,99 +373,110 @@ ptr eval_elems(ptr is)
     }
 }
 
-int is_numeric(char c) {
+int is_numeric(char c)
+{
     return c >= '0' && c <= '9';
 }
 
-int is_whitespace(char c) {
+int is_whitespace(char c)
+{
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
-int is_paren(char c) {
+int is_paren(char c)
+{
     return c == '(' || c == ')';
 }
 
 ptr parse_list(char **input);
 
-ptr parse(char **input) {
+ptr parse(char **input)
+{
     assert(**input && "unexpected EOF");
-    while (is_whitespace(**input)) {
+    while (is_whitespace(**input))
+    {
         ++*input;
     }
-    if (is_numeric(**input)) {
+    if (is_numeric(**input))
+    {
         int num = 0;
-        while (is_numeric(**input)) {
-            printf("num = %d\n", num);
+        while (is_numeric(**input))
+        {
             num *= 10;
             num += (**input) - '0';
             ++*input;
         }
         return new_int(num);
-    } else if (**input == ')') {
+    }
+    else if (**input == ')')
+    {
         ++*input;
         return new_nil();
-    } else if (**input == '(') {
+    }
+    else if (**input == '(')
+    {
         ++*input;
         return parse_list(input);
-    } else {
+    }
+    else
+    {
         // symbol
         char *begin = *input;
-        while (!is_whitespace(**input) && !is_paren(**input)) {
+        while (!is_whitespace(**input) && !is_paren(**input))
+        {
             ++*input;
         }
         char buf[16] = {0};
-        memcpy(buf, begin, *input-begin);
+        memcpy(buf, begin, *input - begin);
         ptr sym = new_symbol(buf);
         return sym;
     }
 }
 
-ptr parse_list(char **input) {
+ptr parse_list(char **input)
+{
     assert(**input && "unexpected EOF");
-    while (is_whitespace(**input)) {
+    while (is_whitespace(**input))
+    {
         ++*input;
     }
-    if (**input == ')') {
+    if (**input == ')')
+    {
         ++*input;
         return new_nil();
-    } else {
+    }
+    else
+    {
         ptr head = parse(input);
         ptr tail = parse_list(input);
         return new_cons(head, tail);
     }
 }
 
+ptr pars(char *input)
+{
+    char **cursor = &input;
+    return parse(cursor);
+}
+
 signed main()
 {
     init();
-    printf("%s %s\n", kind_str(T_NIL), kind_str(T_SYM));
-    ptr sym = new_symbol("hello");
-    println(
-        new_cons(new_int(42),
-                 new_cons(new_int(43),
-                          new_cons(new_nil(),
-                                   new_cons(sym,
-                                            new_nil())))));
-    assert(mem[lt(
-                   new_cons(new_int(42),
-                            new_cons(new_int(43),
-                                     new_nil())))]
-               .kind != T_NIL);
+
+    println(pars("(42 43 nil hello)"));
+    assert(mem[lt(pars("(42 43 44)"))].kind != T_NIL);
     assert(eq(new_symbol("hello"), new_symbol("hello")));
     println(eval(new_int(42)));
+
+    ptr sym = new_symbol("var");
     new_binding(sym, new_int(100));
     println(eval(sym));
 
-    ptr sqr = new_symbol("sqr");
-    ptr fun = new_cons(sym_lambda, new_cons(new_cons(new_symbol("x"), new_nil()), new_cons(new_symbol("x"), new_nil())));
+    ptr sqr = pars("sqr");
+    ptr fun = pars("(.\\ (x) x)");
     new_binding(sqr, fun);
 
     println(eval(fun));
     println(eval(new_cons(sqr, new_cons(new_int(5), new_nil()))));
-
-    char expr[] = "(.\\ (y) (* y y))";
-    char *expr_ref = expr;
-    println(parse(&expr_ref));
-
     return 0;
 }
