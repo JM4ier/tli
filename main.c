@@ -413,6 +413,9 @@ ptr parse(char **input) {
 
 ptr parse_list(char **input) {
     assert(**input && "unexpected EOF");
+    while (is_whitespace(**input)) {
+        ++*input;
+    }
     if (**input == ')') {
         ++*input;
         return new_nil();
