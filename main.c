@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
 #define ptr int64_t
@@ -107,9 +108,20 @@ ptr new_nil() {
 ptr new_symbol(char *symbol) {
     ptr i = alloc();
     mem[i].kind = T_SYM;
-    mem[i].symbol = &symbols[symbols_end];
 
-    // TODO: avoid duplicates
+    {
+        char *p = symbols;
+        int len = 0;
+        while ((len = strlen(p)) > 0) {
+            if (!strcmp(p, symbol)) {
+                mem[i].symbol = p;
+                return i;
+            }
+            p += len;
+        }
+    }
+
+    mem[i].symbol = &symbols[symbols_end];
     while(symbols[symbols_end++] = *symbol++);
     return i;
 }
@@ -182,5 +194,6 @@ int main() {
         new_cons(new_nil(),
         new_cons(sym,
         new_nil())))));
+    assert(mem[new_symbol("hello")].symbol == mem[new_symbol("hello")].symbol);
     return 0;
 }
