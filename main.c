@@ -106,6 +106,10 @@ ptr new_nil() {
 }
 
 ptr new_symbol(char *symbol) {
+    if (!strcmp(symbol, "nil") || !strcmp(symbol, "NIL")) {
+        return 0;
+    }
+
     ptr i = alloc();
     mem[i].kind = T_SYM;
 
