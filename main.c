@@ -155,6 +155,23 @@ ptr get_nil(ptr i) {
     return 0;
 }
 
+int eq(ptr a, ptr b) {
+    if (mem[a].kind != mem[b].kind)
+        return false;
+    switch (mem[a].kind) {
+        case T_NIL:
+            return true;
+        case T_SYM:
+        case T_INT:
+            return mem[a].value == mem[b].value;
+        case T_CON:
+            return eq(get_head(a), get_head(b)) && 
+                   eq(get_tail(a), get_tail(b));
+        default:
+            assert(false && "unreachable");
+    }
+}
+
 void print(ptr i) {
     switch (mem[i].kind) {
         case T_INT:
@@ -198,6 +215,6 @@ int main() {
         new_cons(new_nil(),
         new_cons(sym,
         new_nil())))));
-    assert(mem[new_symbol("hello")].symbol == mem[new_symbol("hello")].symbol);
+    assert(eq(new_symbol("hello"), new_symbol("hello")));
     return 0;
 }
