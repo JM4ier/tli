@@ -6,14 +6,14 @@
 #define ptr int64_t
 #define int int64_t
 
-#define assert(x)                                                        \
-    do                                                                   \
-    {                                                                    \
-        if (!(x))                                                        \
-        {                                                                \
-            printf("Assertion failed on line %d: `%s`\n", __LINE__, #x); \
-            exit(-2);                                                    \
-        }                                                                \
+#define assert(x)                                                               \
+    do                                                                          \
+    {                                                                           \
+        if (!(x))                                                               \
+        {                                                                       \
+            printf("Assertion failed at %s:%d `%s`\n", __FILE__, __LINE__, #x); \
+            exit(-2);                                                           \
+        }                                                                       \
     } while (0)
 
 #define true 1
@@ -52,7 +52,8 @@ typedef struct
     int kind;
 } node_t;
 
-typedef struct {
+typedef struct
+{
     ptr binding;
     char name[16];
 } sym_t;
