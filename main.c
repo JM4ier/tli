@@ -172,6 +172,25 @@ int eq(ptr a, ptr b) {
     }
 }
 
+#define _ORD_(name, cmp)\
+int name(ptr a) {\
+    if (mem[a].kind == T_NIL) {\
+        return true;\
+    }\
+    assert(mem[a].kind == T_CON);\
+    ptr b = get_tail(a);\
+    if (mem[b].kind != T_NIL) {\
+        return (get_int(get_head(a)) cmp get_int(get_head(b))) && name(b);\
+    } else {\
+        return true;\
+    }\
+}
+
+_ORD_(lt, <)
+_ORD_(gt, >)
+_ORD_(lte, <=)
+_ORD_(gte, >=)
+
 void print(ptr i) {
     switch (mem[i].kind) {
         case T_INT:
@@ -215,6 +234,10 @@ int main() {
         new_cons(new_nil(),
         new_cons(sym,
         new_nil())))));
+    assert(lt(
+        new_cons(new_int(42),
+        new_cons(new_int(43),
+        new_nil()))));
     assert(eq(new_symbol("hello"), new_symbol("hello")));
     return 0;
 }
