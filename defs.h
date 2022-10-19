@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#define ptr int64_t
-#define int int64_t
+typedef int64_t ptr;
+typedef int64_t i64;
 
 #define true 1
 #define false 0
@@ -22,7 +22,7 @@ typedef struct
     union
     {
         // integer value
-        int value;
+        i64 value;
         struct
         {
             // head of cons
@@ -38,9 +38,9 @@ typedef struct
         ptr _data[2];
     };
     // number of references to this node, 0 == unused
-    int refs;
+    i64 refs;
     // kind of node
-    int kind;
+    i64 kind;
 } node_t;
 
 typedef struct

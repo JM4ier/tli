@@ -35,7 +35,7 @@ void register_builtin(ptr (*fun)(ptr), char *sym)
     new_binding(s, idx);
 }
 
-char *kind_str(int kind)
+char *kind_str(i64 kind)
 {
     char *p = "UNINIT\0NIL\0INT\0CONS\0SYM\0EMPTY";
     while (kind--)
@@ -46,7 +46,7 @@ char *kind_str(int kind)
     return p;
 }
 
-void init()
+void init(void)
 {
     mem[0].kind = T_NIL;
     mem[0].refs = 1;
@@ -82,7 +82,7 @@ void init()
     register_int_builtins();
 }
 
-ptr alloc()
+ptr alloc(void)
 {
     if (mem[empty].kind != T_EMT)
     {
@@ -101,7 +101,7 @@ ptr alloc()
     return new;
 }
 
-ptr new_int(int value)
+ptr new_int(i64 value)
 {
     ptr i = alloc();
     mem[i].kind = T_INT;
@@ -118,12 +118,12 @@ ptr new_cons(ptr head, ptr tail)
     return i;
 }
 
-ptr new_nil()
+ptr new_nil(void)
 {
     return 0;
 }
 
-ptr new_true()
+ptr new_true(void)
 {
     return 1;
 }
@@ -147,7 +147,7 @@ ptr new_symbol(char *symbol)
             mem[i].kind = T_SYM;
             mem[i].symbol = k;
 
-            int len = strlen(symbol);
+            int len = (int)strlen(symbol);
             assert(len > 0 && len < 16);
 
             strcpy(symbols[k].name, symbol);
@@ -162,10 +162,10 @@ ptr new_symbol(char *symbol)
         }
     }
 
-    assert(false && "Out of Symbols.");
+    failwith("Out of Symbols.");
 }
 
-int get_int(ptr i)
+i64 get_int(ptr i)
 {
     assert(mem[i].kind == T_INT);
     return mem[i].value;
@@ -202,7 +202,11 @@ void new_binding(ptr symbol, ptr expression)
 
 ptr eq(ptr a, ptr b)
 {
-    if (mem[a].kind != mem[b].kind)
+    if (a == b)
+    {
+        return new_true();
+    }
+    if (a < 0 || b < 0 || mem[a].kind != mem[b].kind)
         return new_nil();
     switch (mem[a].kind)
     {
@@ -215,7 +219,7 @@ ptr eq(ptr a, ptr b)
         return eq(get_head(a), get_head(b)) &&
                eq(get_tail(a), get_tail(b));
     default:
-        assert(false && "unreachable");
+        failwith("unreachable");
     }
 }
 
@@ -254,7 +258,7 @@ _ORD_(gte, >=)
     ptr name(ptr a)                            \
     {                                          \
         a = eval_elems(a);                     \
-        int val = init;                        \
+        i64 val = init;                        \
         while (mem[a].kind == T_CON)           \
         {                                      \
             val = val op get_int(get_head(a)); \
@@ -265,16 +269,19 @@ _ORD_(gte, >=)
 _ARITH_(sum, +, 0)
 _ARITH_(prod, *, 1)
 
-#define _CMP_(name, _kind)\
-    ptr name(ptr i)\
-    {\
-        i = eval_elems(i);\
-        i = get_head(i);\
-        if (i < 0 || mem[i].kind != _kind) {\
-            return new_nil();\
-        } else {\
-            return new_true();\
-        }\
+#define _CMP_(name, _kind)                 \
+    ptr name(ptr i)                        \
+    {                                      \
+        i = eval_elems(i);                 \
+        i = get_head(i);                   \
+        if (i < 0 || mem[i].kind != _kind) \
+        {                                  \
+            return new_nil();              \
+        }                                  \
+        else                               \
+        {                                  \
+            return new_true();             \
+        }                                  \
     }
 _CMP_(is_nil, T_NIL)
 _CMP_(is_int, T_INT)
@@ -285,60 +292,84 @@ ptr is_list(ptr i)
 {
     i = eval_elems(i);
     i = get_head(i);
-    while (i >= 0 && mem[i].kind == T_CON) {
+    while (i >= 0 && mem[i].kind == T_CON)
+    {
         i = get_tail(i);
     }
-    if (i < 0 || mem[i].kind != T_NIL) {
+    if (i < 0 || mem[i].kind != T_NIL)
+    {
         return new_nil();
-    } else {
+    }
+    else
+    {
         return new_true();
     }
 }
 
-ptr eval_quote(ptr i) {
+ptr eval_quote(ptr i)
+{
     return get_head(i);
 }
 
-ptr apply_quasiquote(ptr i) {
-    if (i < 0) {
+ptr apply_quasiquote(ptr i)
+{
+    if (i < 0)
+    {
         return i;
     }
-    switch (mem[i].kind) {
-        case T_SYM:
-        case T_NIL:
-        case T_INT:
-            return i;
-        case T_CON:
-            ptr head = get_head(i);
-            ptr tail = get_tail(i);
-            if (head == sym_unquote) {
-                return eval(get_head(tail));
-            } else {
-                ptr new_head = apply_quasiquote(head);
-                ptr new_tail = apply_quasiquote(tail);
-                if (new_head == head && new_tail == tail) {
-                    return i;
-                } else {
-                    return new_cons(new_head, new_tail);
-                }
+    switch (mem[i].kind)
+    {
+    case T_SYM:
+    case T_NIL:
+    case T_INT:
+        return i;
+    case T_CON:
+    {
+        ptr head = get_head(i);
+        ptr tail = get_tail(i);
+        if (head == sym_unquote)
+        {
+            return eval(get_head(tail));
+        }
+        else
+        {
+            ptr new_head = apply_quasiquote(head);
+            ptr new_tail = apply_quasiquote(tail);
+            if (new_head == head && new_tail == tail)
+            {
+                return i;
             }
-        default:
-            assert(false && "unreachable");
+            else
+            {
+                return new_cons(new_head, new_tail);
+            }
+        }
+    }
+    default:
+        failwith("unreachable");
     }
 }
-ptr eval_quasiquote(ptr i) {
-    if (i < 0) {
+ptr eval_quasiquote(ptr i)
+{
+    if (i < 0)
+    {
         return i;
-    } else {
+    }
+    else
+    {
         i = get_head(i);
         return apply_quasiquote(i);
     }
 }
 
-ptr eval_cond(ptr i) {
-    if (i < 0 || mem[i].kind == T_NIL) {
+ptr eval_cond(ptr i)
+{
+    if (i < 0 || mem[i].kind == T_NIL)
+    {
         return i;
-    } else {
+    }
+    else
+    {
         assert(mem[i].kind == T_CON);
 
         ptr branch = get_head(i);
@@ -348,15 +379,19 @@ ptr eval_cond(ptr i) {
         ptr code = get_head(get_tail(branch));
 
         cond = eval(cond);
-        if (mem[cond].kind == T_NIL) {
+        if (mem[cond].kind == T_NIL)
+        {
             return eval_cond(rest);
-        } else {
+        }
+        else
+        {
             return eval(code);
         }
     }
 }
 
-void register_int_builtins() {
+void register_int_builtins()
+{
     register_builtin(&lt, "<");
     register_builtin(&gt, ">");
     register_builtin(&lte, "<=");
@@ -376,14 +411,15 @@ void register_int_builtins() {
 
 void print(ptr i)
 {
-    if (i < 0) {
+    if (i < 0)
+    {
         printf("<builtin>");
         return;
     }
     switch (mem[i].kind)
     {
     case T_INT:
-        printf("%d", get_int(i));
+        printf("%ld", get_int(i));
         return;
     case T_NIL:
         printf("nil");
@@ -391,6 +427,8 @@ void print(ptr i)
     case T_SYM:
         printf("%s", symbols[get_symbol(i)].name);
         return;
+    default:
+        break;
     }
     assert(mem[i].kind == T_CON);
     printf("(");
@@ -435,6 +473,7 @@ ptr beta_reduce(ptr code, ptr formal_args, ptr args)
         }
         return code;
     case T_CON:
+    {
         ptr head = get_head(code);
         ptr tail = get_tail(code);
         if (head == sym_lambda)
@@ -451,14 +490,16 @@ ptr beta_reduce(ptr code, ptr formal_args, ptr args)
         {
             return new_cons(new_head, new_tail);
         }
+    }
     default:
-        assert(false && "unreachable");
+        failwith("unreachable");
     }
 }
 
 ptr eval(ptr i)
 {
-    if (i < 0) {
+    if (i < 0)
+    {
         return i;
     }
     switch (mem[i].kind)
@@ -467,21 +508,25 @@ ptr eval(ptr i)
     case T_INT:
         return i;
     case T_SYM:
+    {
         ptr sym = get_symbol(i);
         ptr bind = symbols[sym].binding;
         if (bind >= 0 && mem[bind].kind == T_POO)
         {
             printf("`%s` is unbound.\n", symbols[sym].name);
-            assert(false);
+            failwith("");
         }
         return bind;
+    }
     case T_CON:
+    {
         ptr head = get_head(i);
         if (head == sym_lambda || head == sym_macro)
         {
             return i;
         }
-        if (head == sym_def) {
+        if (head == sym_def)
+        {
             ptr name = get_head(get_tail(i));
             ptr def = get_head(get_tail(get_tail(i)));
             new_binding(name, def);
@@ -490,7 +535,8 @@ ptr eval(ptr i)
         ptr fun = eval(head);
         ptr args = get_tail(i);
 
-        if (fun < 0) {
+        if (fun < 0)
+        {
             // builtins behave like macros by default, evaluation must be done by the function itself
             return builtins[-fun](args);
         }
@@ -515,14 +561,16 @@ ptr eval(ptr i)
 
         ptr reduced = beta_reduce(fun_body, formal_args, args);
 
-        if (fun_head == sym_macro) {
+        if (fun_head == sym_macro)
+        {
             // macro expansion
             reduced = eval(reduced);
         }
 
         return eval(reduced);
+    }
     default:
-        assert(false && "unreachable");
+        failwith("unreachable");
     }
 }
 
@@ -554,8 +602,10 @@ int is_whitespace(char c)
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
-void strip(char **i) {
-    while (is_whitespace(**i)) {
+void strip(char **i)
+{
+    while (is_whitespace(**i))
+    {
         ++*i;
     }
 }
@@ -565,7 +615,8 @@ int is_paren(char c)
     return c == '(' || c == ')';
 }
 
-int is_quoting(char c) {
+int is_quoting(char c)
+{
     return c == ',' || c == '\'' || c == '`';
 }
 
@@ -577,7 +628,7 @@ ptr parse(char **input)
     strip(input);
     if (is_numeric(**input))
     {
-        int num = 0;
+        i64 num = 0;
         while (is_numeric(**input))
         {
             num *= 10;
@@ -596,12 +647,22 @@ ptr parse(char **input)
         ++*input;
         return parse_list(input);
     }
-    else if (is_quoting(**input)) {
+    else if (is_quoting(**input))
+    {
         char *sym = 0;
-        switch (**input) {
-            case '\'':  sym = "quote"; break;
-            case '`':   sym = "quasiquote"; break;
-            case ',':   sym = "unquote"; break;
+        switch (**input)
+        {
+        case '\'':
+            sym = "quote";
+            break;
+        case '`':
+            sym = "quasiquote";
+            break;
+        case ',':
+            sym = "unquote";
+            break;
+        default:
+            failwith("unknown quote");
         }
         ++*input;
         ptr symbol = new_symbol(sym);
@@ -617,7 +678,7 @@ ptr parse(char **input)
         }
         char buf[16] = {0};
         assert(*input - begin < 16);
-        memcpy(buf, begin, *input - begin);
+        memcpy(buf, begin, (size_t)(*input - begin));
         ptr sym = new_symbol(buf);
         return sym;
     }
@@ -646,28 +707,33 @@ ptr pars(char *input)
     return parse(cursor);
 }
 
-void dump() {
+void dump(void)
+{
     printf("-===- DUMP BEGIN -===-\n");
-    for (int i = 0; i < MEM_LEN; i++) {
-        if (mem[i].kind == T_POO || mem[i].kind == T_EMT) {
+    for (ptr i = 0; i < MEM_LEN; i++)
+    {
+        if (mem[i].kind == T_POO || mem[i].kind == T_EMT)
+        {
             continue;
         }
-        printf("%04d: `", i);
+        printf("%04ld: `", i);
         print(i);
         printf("`\n");
     }
     printf("\n");
-    for (int s = 0; s < SYM_LEN; s++) {
-        if (strlen(symbols[s].name)) {
-            printf(".%03d: (%03d) `%s`\n", s, symbols[s].binding, symbols[s].name);
+    for (ptr s = 0; s < SYM_LEN; s++)
+    {
+        if (strlen(symbols[s].name))
+        {
+            printf(".%03ld: (%03ld) `%s`\n", s, symbols[s].binding, symbols[s].name);
         }
     }
     printf("-===- DUMP END -===-\n");
 }
 
-signed main()
+signed main(void)
 {
-    #define LISP_LEN (1 << 20)
+#define LISP_LEN (1 << 20)
 
     // lisp source to be interpreted
     static char lisp[LISP_LEN] = {0};
@@ -676,12 +742,11 @@ signed main()
     assert(f);
 
     fseek(f, 0, SEEK_END);
-    long fsize = ftell(f);
+    size_t fsize = (size_t)ftell(f);
     fseek(f, 0, SEEK_SET);
 
     assert(fsize < LISP_LEN);
 
-    char *string = malloc(fsize + 1);
     fread(lisp, fsize, 1, f);
     fclose(f);
     lisp[fsize] = 0;
@@ -692,7 +757,8 @@ signed main()
     char *lisp_ptr = &lisp[0];
     char **cursor = &lisp_ptr;
 
-    while (**cursor) {
+    while (**cursor)
+    {
         ptr parsed = parse(cursor);
         ptr evaled = eval(parsed);
         println(evaled);
@@ -701,7 +767,8 @@ signed main()
     return 0;
 }
 
-void test() {
+void test(void)
+{
     println(pars("(42 43 nil hello)"));
     assert(mem[lt(pars("(42 43 44)"))].kind != T_NIL);
     assert(eq(new_symbol("hello"), new_symbol("hello")));
