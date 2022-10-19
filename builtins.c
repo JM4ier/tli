@@ -201,6 +201,21 @@ static ptr eval_cond(ptr i)
     }
 }
 
+static ptr head(ptr i) {
+    return get_head(get_head(eval_elems(i)));
+}
+
+static ptr tail(ptr i) {
+    return get_tail(get_head(eval_elems(i)));
+}
+
+static ptr el(ptr i) {
+    i = eval_elems(i);
+    ptr idx = elem(0, i);
+    ptr list = elem(1, i);
+    return elem(get_int(idx), list);
+}
+
 void register_builtins(void)
 {
     new_builtin(&eq, "=");
@@ -223,4 +238,8 @@ void register_builtins(void)
     new_builtin(&eval_quasiquote, "quasiquote");
 
     new_builtin(&eval_cond, "cond");
+
+    new_builtin(&head, "hd");
+    new_builtin(&tail, "tl");
+    new_builtin(&el, "el");
 }
