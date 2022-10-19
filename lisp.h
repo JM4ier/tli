@@ -75,6 +75,7 @@ ptr get_nil(ptr i);
 ptr get_head(ptr i);
 ptr get_tail(ptr i);
 ptr elem(int idx, ptr node);
+char *get_symbol_str(ptr s);
 
 // eval an expression
 // might have side effects

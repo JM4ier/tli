@@ -6,6 +6,7 @@
 #include "lisp.h"
 #include "assert.h"
 #include "builtins.h"
+#include "print.h"
 
 #define MEM_LEN 100000
 #define SYM_LEN 1024
@@ -31,6 +32,10 @@ void new_builtin(ptr (*fun)(ptr), char *sym)
 
 int is_unquote(ptr i) {
     return i == sym_unquote;
+}
+
+char *get_symbol_str(ptr s) {
+    return symbols[s].name;
 }
 
 void init(void)
@@ -237,51 +242,6 @@ void new_binding(ptr symbol, ptr expression)
     symbols[get_symbol(symbol)].binding = expression;
 }
 
-void print(ptr i)
-{
-    if (i < 0)
-    {
-        printf("<builtin>");
-        return;
-    }
-    switch (mem[i].kind)
-    {
-    case T_INT:
-        printf("%ld", get_int(i));
-        return;
-    case T_NIL:
-        printf("nil");
-        return;
-    case T_SYM:
-        printf("%s", symbols[get_symbol(i)].name);
-        return;
-    default:
-        break;
-    }
-    assert(mem[i].kind == T_CON);
-    printf("(");
-    while (mem[i].kind == T_CON)
-    {
-        print(get_head(i));
-        i = get_tail(i);
-        if (mem[i].kind != T_NIL)
-        {
-            printf(" ");
-        }
-    }
-    if (mem[i].kind != T_NIL)
-    {
-        printf(". ");
-        print(i);
-    }
-    printf(")");
-}
-
-void println(ptr i)
-{
-    print(i);
-    printf("\n");
-}
 
 ptr beta_reduce(ptr code, ptr formal_args, ptr args)
 {
