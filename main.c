@@ -13,6 +13,7 @@ static sym_t symbols[SYM_LEN] = {0};
 
 static ptr sym_lambda = 0;
 static ptr sym_def = 0;
+static ptr sym_macro = 0;
 
 #define MAX_BUILTINS 100
 static ptr (*builtins[MAX_BUILTINS])(ptr) = {0};
@@ -73,6 +74,7 @@ void init()
 
     sym_lambda = new_symbol(".\\");
     sym_def = new_symbol("def");
+    sym_macro = new_symbol("m\\");
 
     register_int_builtins();
 }
@@ -412,17 +414,18 @@ ptr eval(ptr i)
         }
         return bind;
     case T_CON:
-        if (get_head(i) == sym_lambda)
+        ptr head = get_head(i);
+        if (head == sym_lambda || head == sym_macro)
         {
             return i;
         }
-        if (get_head(i) == sym_def) {
+        if (head == sym_def) {
             ptr name = get_head(get_tail(i));
             ptr def = get_head(get_tail(get_tail(i)));
             new_binding(name, def);
             return 0;
         }
-        ptr fun = eval(get_head(i));
+        ptr fun = eval(head);
         ptr args = get_tail(i);
 
         if (fun < 0) {
@@ -430,9 +433,15 @@ ptr eval(ptr i)
             return builtins[-fun](args);
         }
 
-        args = eval_elems(args);
+        ptr fun_head = get_head(fun);
 
-        assert(get_head(fun) == sym_lambda);
+        assert(fun_head == sym_lambda || fun_head == sym_macro);
+
+        if (fun_head == sym_lambda)
+        {
+            // argument evaluation
+            args = eval_elems(args);
+        }
 
         ptr fun1 = get_tail(fun);
         assert(mem[fun1].kind == T_CON);
@@ -443,6 +452,12 @@ ptr eval(ptr i)
         ptr fun_body = get_head(fun2);
 
         ptr reduced = beta_reduce(fun_body, formal_args, args);
+
+        if (fun_head == sym_macro) {
+            // macro expansion
+            reduced = eval(reduced);
+        }
+
         return eval(reduced);
     default:
         assert(false && "unreachable");
