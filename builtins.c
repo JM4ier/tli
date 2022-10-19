@@ -80,6 +80,27 @@ _ORD_(gte, >=)
 _ARITH_(sum, +, 0)
 _ARITH_(prod, *, 1)
 
+static ptr minus(ptr i) {
+    i = eval_elems(i);
+    ptr arg0 = get_head(i);
+    if (kind(get_tail(i)) != T_NIL) {
+        ptr arg1 = elem(1, i);
+        return new_int(get_int(arg0) - get_int(arg1));
+    } else {
+        return new_int(-get_int(arg0));
+    }
+}
+
+static ptr div(ptr i) {
+    i = eval_elems(i);
+    return new_int(get_int(elem(0, i)) / get_int(elem(1, i)));
+}
+
+static ptr mod(ptr i) {
+    i = eval_elems(i);
+    return new_int(get_int(elem(0, i)) % get_int(elem(1, i)));
+}
+
 #define _CMP_(name, _kind)             \
     static ptr name(ptr i)             \
     {                                  \
@@ -201,6 +222,13 @@ static ptr eval_cond(ptr i)
     }
 }
 
+static ptr cons(ptr i) {
+    i = eval_elems(i);
+    ptr hd = elem(0, i);
+    ptr tl = elem(1, i);
+    return new_cons(hd, tl);
+}
+
 static ptr head(ptr i) {
     return get_head(get_head(eval_elems(i)));
 }
@@ -227,6 +255,9 @@ void register_builtins(void)
 
     new_builtin(&sum, "+");
     new_builtin(&prod, "*");
+    new_builtin(&minus, "-");
+    new_builtin(&div, "/");
+    new_builtin(&mod, "%");
 
     new_builtin(&is_nil, "nil?");
     new_builtin(&is_int, "int?");
@@ -239,6 +270,7 @@ void register_builtins(void)
 
     new_builtin(&eval_cond, "cond");
 
+    new_builtin(&cons, "cons");
     new_builtin(&head, "hd");
     new_builtin(&tail, "tl");
     new_builtin(&el, "el");
