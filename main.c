@@ -517,9 +517,7 @@ ptr eval(ptr i)
 
         if (fun_head == sym_macro) {
             // macro expansion
-            println(reduced);
             reduced = eval(reduced);
-            println(reduced);
         }
 
         return eval(reduced);
@@ -567,6 +565,10 @@ int is_paren(char c)
     return c == '(' || c == ')';
 }
 
+int is_quoting(char c) {
+    return c == ',' || c == '\'' || c == '`';
+}
+
 ptr parse_list(char **input);
 
 ptr parse(char **input)
@@ -593,6 +595,17 @@ ptr parse(char **input)
     {
         ++*input;
         return parse_list(input);
+    }
+    else if (is_quoting(**input)) {
+        char *sym = 0;
+        switch (**input) {
+            case '\'':  sym = "quote"; break;
+            case '`':   sym = "quasiquote"; break;
+            case ',':   sym = "unquote"; break;
+        }
+        ++*input;
+        ptr symbol = new_symbol(sym);
+        return new_cons(symbol, new_cons(parse(input), new_nil()));
     }
     else
     {
