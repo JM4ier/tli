@@ -617,7 +617,7 @@ int is_paren(char c)
 
 int is_quoting(char c)
 {
-    return c == ',' || c == '\'' || c == '`';
+    return c == '#' || c == '\'' || c == '`';
 }
 
 ptr parse_list(char **input);
@@ -658,7 +658,7 @@ ptr parse(char **input)
         case '`':
             sym = "quasiquote";
             break;
-        case ',':
+        case '#':
             sym = "unquote";
             break;
         default:

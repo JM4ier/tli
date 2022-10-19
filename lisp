@@ -3,8 +3,8 @@
 (list? (quote (1 2 3)))
 (def if (m\ (expr true false)
     `(cond
-        (,expr ,true)
-        (1     ,false)
+        (#expr #true)
+        (1     #false)
     )
 ))
 (if 1 2 3)
