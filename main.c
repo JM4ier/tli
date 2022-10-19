@@ -20,6 +20,8 @@ static int builtins_len = 1;
 
 ptr new_symbol(char *);
 void new_binding(ptr symbol, ptr expression);
+ptr eval_elems(ptr is);
+void register_int_builtins(void);
 
 void register_builtin(ptr (*fun)(ptr), char *sym)
 {
@@ -215,6 +217,7 @@ ptr eq(ptr a, ptr b)
 #define _ORD_(name, cmp)                                       \
     ptr name(ptr a)                                            \
     {                                                          \
+        a = eval_elems(a);                                     \
         if (mem[a].kind == T_NIL)                              \
         {                                                      \
             return new_true();                                 \
@@ -245,6 +248,7 @@ _ORD_(gte, >=)
 #define _ARITH_(name, op, init)                \
     ptr name(ptr a)                            \
     {                                          \
+        a = eval_elems(a);                     \
         int val = init;                        \
         while (mem[a].kind == T_CON)           \
         {                                      \
@@ -259,6 +263,7 @@ _ARITH_(prod, *, 1)
 #define _CMP_(name, _kind)\
     ptr name(ptr i)\
     {\
+        i = eval_elems(i);\
         i = get_head(i);\
         if (i < 0 || mem[i].kind != _kind) {\
             return new_nil();\
@@ -273,6 +278,7 @@ _CMP_(is_pair, T_CON)
 
 ptr is_list(ptr i)
 {
+    i = eval_elems(i);
     i = get_head(i);
     while (i >= 0 && mem[i].kind == T_CON) {
         i = get_tail(i);
@@ -347,8 +353,6 @@ void println(ptr i)
     printf("\n");
 }
 
-ptr eval_elems(ptr is);
-
 ptr beta_reduce(ptr code, ptr formal_args, ptr args)
 {
     // TODO handle macro
@@ -419,11 +423,14 @@ ptr eval(ptr i)
             return 0;
         }
         ptr fun = eval(get_head(i));
-        ptr args = eval_elems(get_tail(i));
+        ptr args = get_tail(i);
 
         if (fun < 0) {
+            // builtins behave like macros by default, evaluation must be done by the function itself
             return builtins[-fun](args);
         }
+
+        args = eval_elems(args);
 
         assert(get_head(fun) == sym_lambda);
 
@@ -568,7 +575,6 @@ void dump() {
 
 signed main()
 {
-
     #define LISP_LEN (1 << 20)
 
     // lisp source to be interpreted
