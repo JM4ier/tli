@@ -1,12 +1,13 @@
-(* 1 2 3 4 5 (+ 1 2 3))
-(def pi 3)
-(list? (quote (1 2 3)))
-(def if (m\ (expr true false)
+(def true 1)
+(def if (m\ (expr then else)
     `(cond
-        (#expr #true)
-        (1     #false)
+        (#expr #then)
+        (true  #else)
     )
 ))
 (def id (.\ (x) x))
-(if 1 2 '(1 2))
+
+
+
+(if nil 2 '(1 2))
 (id '(1 2 3))
