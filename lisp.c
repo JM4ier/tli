@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "defs.h"
+#include "lisp.h"
 #include "assert.h"
 #include "builtins.h"
 

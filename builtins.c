@@ -1,5 +1,5 @@
 #include "builtins.h"
-#include "defs.h"
+#include "lisp.h"
 #include "assert.h"
 
 static int c_eq(ptr a, ptr b)
