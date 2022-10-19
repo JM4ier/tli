@@ -13,7 +13,21 @@ static sym_t symbols[SYM_LEN] = {0};
 static ptr sym_lambda = 0;
 static ptr sym_def = 0;
 
+#define MAX_BUILTINS 100
+static ptr (*builtins[MAX_BUILTINS])(ptr) = {0};
+static int builtins_len = 1;
+
 ptr new_symbol(char *);
+void new_binding(ptr symbol, ptr expression);
+
+void register_builtin(ptr (*fun)(ptr), char *sym)
+{
+    assert(builtins_len < MAX_BUILTINS);
+    int idx = -builtins_len;
+    builtins[builtins_len++] = fun;
+    ptr s = new_symbol(sym);
+    new_binding(s, idx);
+}
 
 char *kind_str(int kind)
 {
@@ -56,6 +70,8 @@ void init()
 
     sym_lambda = new_symbol(".\\");
     sym_def = new_symbol("def");
+
+    register_int_builtins();
 }
 
 ptr alloc()
@@ -239,8 +255,21 @@ _ORD_(gte, >=)
 _ARITH_(sum, +, 0)
 _ARITH_(prod, *, 1)
 
+void register_int_builtins() {
+    register_builtin(&lt, "<");
+    register_builtin(&gt, ">");
+    register_builtin(&lte, "<=");
+    register_builtin(&gte, ">=");
+    register_builtin(&sum, "+");
+    register_builtin(&prod, "*");
+}
+
 void print(ptr i)
 {
+    if (i < 0) {
+        printf("<builtin>");
+        return;
+    }
     switch (mem[i].kind)
     {
     case T_INT:
@@ -348,6 +377,11 @@ ptr eval(ptr i)
         }
         ptr fun = eval(get_head(i));
         ptr args = eval_elems(get_tail(i));
+
+        if (fun < 0) {
+            return builtins[-fun](args);
+        }
+
         assert(get_head(fun) == sym_lambda);
 
         ptr fun1 = get_tail(fun);
