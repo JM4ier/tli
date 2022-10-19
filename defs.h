@@ -15,6 +15,7 @@ typedef int64_t i64;
 #define T_CON 3 // cons, i.e. a pair
 #define T_SYM 4 // symbol
 #define T_EMT 5 // empty
+#define T_NAT 5 // natively implemented function
 
 typedef struct
 {
@@ -49,5 +50,39 @@ typedef struct
     ptr node;
     char name[16];
 } sym_t;
+
+void init(void);
+
+void new_builtin(ptr (*fun)(ptr), char *sym);
+void new_binding(ptr symbol, ptr expression);
+
+// construct new nodes
+ptr new_int(i64 value);
+ptr new_cons(ptr head, ptr tail);
+ptr new_nil(void);
+ptr new_list(int len, ...);
+ptr new_true(void);
+ptr new_symbol(char *symbol);
+ptr quoted(ptr i);
+
+// get kind of data
+i64 kind(ptr i);
+
+// get data out of nodes, needs to be correct kind
+i64 get_int(ptr i);
+ptr get_symbol(ptr i);
+ptr get_nil(ptr i);
+ptr get_head(ptr i);
+ptr get_tail(ptr i);
+ptr elem(int idx, ptr node);
+
+// eval an expression
+// might have side effects
+ptr eval(ptr i);
+
+// eval list, element-wise
+ptr eval_elems(ptr is);
+
+int is_unquote(ptr i);
 
 #endif

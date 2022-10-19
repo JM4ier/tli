@@ -1,6 +1,8 @@
 #ifndef __ASSERT_H__
 #define __ASSERT_H__
 
+#include <stdio.h>
+
 void __print_backtrace__(void);
 
 #define assert(x)                                                                 \

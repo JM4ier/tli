@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "defs.h"
 #include "assert.h"
+#include "builtins.h"
 
 #define MEM_LEN 100000
 #define SYM_LEN 1024
@@ -15,19 +16,9 @@ static ptr empty = 0;
 
 static sym_t symbols[SYM_LEN] = {0};
 
-static ptr sym_lambda = 0;
-static ptr sym_def = 0;
-static ptr sym_macro = 0;
-static ptr sym_unquote = 0;
-
+static ptr sym_lambda = 0, sym_def = 0, sym_macro = 0, sym_unquote = 0;
 static ptr (*builtins[MAX_BUILTINS])(ptr) = {0};
 static int builtins_len = 1;
-
-ptr new_symbol(char *);
-void new_binding(ptr symbol, ptr expression);
-ptr eval_elems(ptr is);
-ptr eval(ptr i);
-void register_builtins(void);
 
 void new_builtin(ptr (*fun)(ptr), char *sym)
 {
@@ -36,6 +27,10 @@ void new_builtin(ptr (*fun)(ptr), char *sym)
     builtins[builtins_len++] = fun;
     ptr s = new_symbol(sym);
     new_binding(s, idx);
+}
+
+int is_unquote(ptr i) {
+    return i == sym_unquote;
 }
 
 void init(void)
@@ -183,6 +178,18 @@ ptr new_symbol(char *symbol)
     failwith("Out of Symbols.");
 }
 
+i64 kind(ptr i)
+{
+    if (i < 0)
+    {
+        return T_NAT;
+    }
+    else
+    {
+        return mem[i].kind;
+    }
+}
+
 i64 get_int(ptr i)
 {
     assert(mem[i].kind == T_INT);
@@ -228,215 +235,6 @@ ptr get_nil(ptr i)
 void new_binding(ptr symbol, ptr expression)
 {
     symbols[get_symbol(symbol)].binding = expression;
-}
-
-ptr eq(ptr a, ptr b)
-{
-    if (a == b)
-    {
-        return new_true();
-    }
-    if (a < 0 || b < 0 || mem[a].kind != mem[b].kind)
-        return new_nil();
-    switch (mem[a].kind)
-    {
-    case T_NIL:
-        return new_true();
-    case T_SYM:
-    case T_INT:
-        return mem[a].value == mem[b].value ? new_true() : new_nil();
-    case T_CON:
-        return eq(get_head(a), get_head(b)) &&
-               eq(get_tail(a), get_tail(b));
-    default:
-        failwith("unreachable");
-    }
-}
-
-#define _ORD_(name, cmp)                                       \
-    ptr name(ptr a)                                            \
-    {                                                          \
-        a = eval_elems(a);                                     \
-        if (mem[a].kind == T_NIL)                              \
-        {                                                      \
-            return new_true();                                 \
-        }                                                      \
-        assert(mem[a].kind == T_CON);                          \
-        ptr b = get_tail(a);                                   \
-        if (mem[b].kind != T_NIL)                              \
-        {                                                      \
-            if (get_int(get_head(a)) cmp get_int(get_head(b))) \
-            {                                                  \
-                return name(b);                                \
-            }                                                  \
-            else                                               \
-            {                                                  \
-                return new_nil();                              \
-            }                                                  \
-        }                                                      \
-        else                                                   \
-        {                                                      \
-            return new_true();                                 \
-        }                                                      \
-    }
-_ORD_(lt, <)
-_ORD_(gt, >)
-_ORD_(lte, <=)
-_ORD_(gte, >=)
-
-#define _ARITH_(name, op, init)                \
-    ptr name(ptr a)                            \
-    {                                          \
-        a = eval_elems(a);                     \
-        i64 val = init;                        \
-        while (mem[a].kind == T_CON)           \
-        {                                      \
-            val = val op get_int(get_head(a)); \
-            a = get_tail(a);                   \
-        }                                      \
-        return new_int(val);                   \
-    }
-_ARITH_(sum, +, 0)
-_ARITH_(prod, *, 1)
-
-#define _CMP_(name, _kind)                 \
-    ptr name(ptr i)                        \
-    {                                      \
-        i = eval_elems(i);                 \
-        i = get_head(i);                   \
-        if (i < 0 || mem[i].kind != _kind) \
-        {                                  \
-            return new_nil();              \
-        }                                  \
-        else                               \
-        {                                  \
-            return new_true();             \
-        }                                  \
-    }
-_CMP_(is_nil, T_NIL)
-_CMP_(is_int, T_INT)
-_CMP_(is_sym, T_SYM)
-_CMP_(is_pair, T_CON)
-
-ptr is_list(ptr i)
-{
-    i = eval_elems(i);
-    i = get_head(i);
-    while (i >= 0 && mem[i].kind == T_CON)
-    {
-        i = get_tail(i);
-    }
-    if (i < 0 || mem[i].kind != T_NIL)
-    {
-        return new_nil();
-    }
-    else
-    {
-        return new_true();
-    }
-}
-
-ptr eval_quote(ptr i)
-{
-    return get_head(i);
-}
-
-ptr apply_quasiquote(ptr i)
-{
-    if (i < 0)
-    {
-        return i;
-    }
-    switch (mem[i].kind)
-    {
-    case T_SYM:
-    case T_NIL:
-    case T_INT:
-        return i;
-    case T_CON:
-    {
-        ptr head = get_head(i);
-        ptr tail = get_tail(i);
-        if (head == sym_unquote)
-        {
-            return eval(get_head(tail));
-        }
-        else
-        {
-            ptr new_head = apply_quasiquote(head);
-            ptr new_tail = apply_quasiquote(tail);
-            if (new_head == head && new_tail == tail)
-            {
-                return i;
-            }
-            else
-            {
-                return new_cons(new_head, new_tail);
-            }
-        }
-    }
-    default:
-        failwith("unreachable");
-    }
-}
-ptr eval_quasiquote(ptr i)
-{
-    if (i < 0)
-    {
-        return i;
-    }
-    else
-    {
-        i = get_head(i);
-        return apply_quasiquote(i);
-    }
-}
-
-ptr eval_cond(ptr i)
-{
-    if (i < 0 || mem[i].kind == T_NIL)
-    {
-        return i;
-    }
-    else
-    {
-        assert(mem[i].kind == T_CON);
-
-        ptr branch = get_head(i);
-        ptr rest = get_tail(i);
-
-        ptr cond = elem(0, branch);
-        ptr code = elem(1, branch);
-
-        cond = eval(cond);
-        if (mem[cond].kind == T_NIL)
-        {
-            return eval_cond(rest);
-        }
-        else
-        {
-            return eval(code);
-        }
-    }
-}
-
-void register_builtins()
-{
-    new_builtin(&lt, "<");
-    new_builtin(&gt, ">");
-    new_builtin(&lte, "<=");
-    new_builtin(&gte, ">=");
-    new_builtin(&sum, "+");
-    new_builtin(&prod, "*");
-
-    new_builtin(&is_nil, "nil?");
-    new_builtin(&is_int, "int?");
-    new_builtin(&is_sym, "sym?");
-    new_builtin(&is_pair, "pair?");
-    new_builtin(&is_list, "list?");
-    new_builtin(&eval_quote, "quote");
-    new_builtin(&eval_quasiquote, "quasiquote");
-    new_builtin(&eval_cond, "cond");
 }
 
 void print(ptr i)
@@ -794,23 +592,4 @@ signed main(void)
     }
 
     return 0;
-}
-
-void test(void)
-{
-    println(pars("(42 43 nil hello)"));
-    assert(mem[lt(pars("(42 43 44)"))].kind != T_NIL);
-    assert(eq(new_symbol("hello"), new_symbol("hello")));
-    println(eval(new_int(42)));
-
-    ptr sym = new_symbol("var");
-    new_binding(sym, new_int(100));
-    println(eval(sym));
-
-    ptr sqr = pars("sqr");
-    ptr fun = pars("(.\\ (x) x)");
-    new_binding(sqr, fun);
-
-    println(eval(fun));
-    println(eval(new_cons(sqr, new_cons(new_int(5), new_nil()))));
 }
