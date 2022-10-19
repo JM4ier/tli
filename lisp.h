@@ -96,4 +96,7 @@ void print(ptr i);
 void println(ptr i);
 void dump(void);
 
+// parsing
+ptr parse(char **input);
+
 #endif
