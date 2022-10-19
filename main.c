@@ -4,12 +4,14 @@
 #include <stdlib.h>
 #include "defs.h"
 
-static node_t mem[100000] = {0};
+#define MEM_LEN 100000
+static node_t mem[MEM_LEN] = {0};
 static ptr empty = 0;
 #define SYM_LEN 1024
 static sym_t symbols[SYM_LEN] = {0};
 
 static ptr sym_lambda = 0;
+static ptr sym_def = 0;
 
 ptr new_symbol(char *);
 
@@ -53,6 +55,7 @@ void init()
     }
 
     sym_lambda = new_symbol(".\\");
+    sym_def = new_symbol("def");
 }
 
 ptr alloc()
@@ -111,6 +114,11 @@ ptr new_symbol(char *symbol)
     if (sym_lambda && (!strcmp(symbol, ".\\") || !strcmp(symbol, "lambda") || !strcmp(symbol, "LAMBDA")))
     {
         return sym_lambda;
+    }
+
+    if (sym_def && (!strcmp(symbol, "def")))
+    {
+        return sym_def;
     }
 
     ptr i = alloc();
@@ -336,6 +344,12 @@ ptr eval(ptr i)
         {
             return i;
         }
+        if (get_head(i) == sym_def) {
+            ptr name = get_head(get_tail(i));
+            ptr def = get_head(get_tail(get_tail(i)));
+            new_binding(name, def);
+            return 0;
+        }
         ptr fun = eval(get_head(i));
         ptr args = eval_elems(get_tail(i));
         assert(get_head(fun) == sym_lambda);
@@ -383,6 +397,12 @@ int is_whitespace(char c)
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
+void strip(char **i) {
+    while (is_whitespace(**i)) {
+        ++*i;
+    }
+}
+
 int is_paren(char c)
 {
     return c == '(' || c == ')';
@@ -393,10 +413,7 @@ ptr parse_list(char **input);
 ptr parse(char **input)
 {
     assert(**input && "unexpected EOF");
-    while (is_whitespace(**input))
-    {
-        ++*input;
-    }
+    strip(input);
     if (is_numeric(**input))
     {
         int num = 0;
@@ -422,11 +439,12 @@ ptr parse(char **input)
     {
         // symbol
         char *begin = *input;
-        while (!is_whitespace(**input) && !is_paren(**input))
+        while (!is_whitespace(**input) && !is_paren(**input) && **input)
         {
             ++*input;
         }
         char buf[16] = {0};
+        assert(*input - begin < 16);
         memcpy(buf, begin, *input - begin);
         ptr sym = new_symbol(buf);
         return sym;
@@ -436,10 +454,7 @@ ptr parse(char **input)
 ptr parse_list(char **input)
 {
     assert(**input && "unexpected EOF");
-    while (is_whitespace(**input))
-    {
-        ++*input;
-    }
+    strip(input);
     if (**input == ')')
     {
         ++*input;
@@ -459,10 +474,62 @@ ptr pars(char *input)
     return parse(cursor);
 }
 
+void dump() {
+    printf("-===- DUMP BEGIN -===-\n");
+    for (int i = 0; i < MEM_LEN; i++) {
+        if (mem[i].kind == T_POO || mem[i].kind == T_EMT) {
+            continue;
+        }
+        printf("%d -> ", i);
+        println(i);
+    }
+    printf("\n");
+    for (int s = 0; s < SYM_LEN; s++) {
+        if (strlen(symbols[s].name)) {
+            printf("%d => %s\n", s, symbols[s].name);
+        }
+    }
+    printf("-===- DUMP END -===-\n");
+}
+
 signed main()
 {
-    init();
 
+    #define LISP_LEN (1 << 20)
+
+    // lisp source to be interpreted
+    static char lisp[LISP_LEN] = {0};
+
+    FILE *f = fopen("lisp", "rb");
+    assert(f);
+
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    assert(fsize < LISP_LEN);
+
+    char *string = malloc(fsize + 1);
+    fread(lisp, fsize, 1, f);
+    fclose(f);
+    lisp[fsize] = 0;
+
+    init();
+    dump();
+
+    char *lisp_ptr = &lisp[0];
+    char **cursor = &lisp_ptr;
+
+    while (**cursor) {
+        ptr parsed = parse(cursor);
+        ptr evaled = eval(parsed);
+        println(evaled);
+    }
+
+    return 0;
+}
+
+void test() {
     println(pars("(42 43 nil hello)"));
     assert(mem[lt(pars("(42 43 44)"))].kind != T_NIL);
     assert(eq(new_symbol("hello"), new_symbol("hello")));
@@ -478,5 +545,4 @@ signed main()
 
     println(eval(fun));
     println(eval(new_cons(sqr, new_cons(new_int(5), new_nil()))));
-    return 0;
 }
