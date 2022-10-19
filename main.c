@@ -14,6 +14,7 @@ static sym_t symbols[SYM_LEN] = {0};
 static ptr sym_lambda = 0;
 static ptr sym_def = 0;
 static ptr sym_macro = 0;
+static ptr sym_unquote = 0;
 
 #define MAX_BUILTINS 100
 static ptr (*builtins[MAX_BUILTINS])(ptr) = {0};
@@ -22,6 +23,7 @@ static int builtins_len = 1;
 ptr new_symbol(char *);
 void new_binding(ptr symbol, ptr expression);
 ptr eval_elems(ptr is);
+ptr eval(ptr i);
 void register_int_builtins(void);
 
 void register_builtin(ptr (*fun)(ptr), char *sym)
@@ -75,6 +77,7 @@ void init()
     sym_lambda = new_symbol(".\\");
     sym_def = new_symbol("def");
     sym_macro = new_symbol("m\\");
+    sym_unquote = new_symbol("unquote");
 
     register_int_builtins();
 }
@@ -296,6 +299,63 @@ ptr eval_quote(ptr i) {
     return get_head(i);
 }
 
+ptr apply_quasiquote(ptr i) {
+    if (i < 0) {
+        return i;
+    }
+    switch (mem[i].kind) {
+        case T_SYM:
+        case T_NIL:
+        case T_INT:
+            return i;
+        case T_CON:
+            ptr head = get_head(i);
+            ptr tail = get_tail(i);
+            if (head == sym_unquote) {
+                return eval(get_head(tail));
+            } else {
+                ptr new_head = apply_quasiquote(head);
+                ptr new_tail = apply_quasiquote(tail);
+                if (new_head == head && new_tail == tail) {
+                    return i;
+                } else {
+                    return new_cons(new_head, new_tail);
+                }
+            }
+        default:
+            assert(false && "unreachable");
+    }
+}
+ptr eval_quasiquote(ptr i) {
+    if (i < 0) {
+        return i;
+    } else {
+        i = get_head(i);
+        return apply_quasiquote(i);
+    }
+}
+
+ptr eval_cond(ptr i) {
+    if (i < 0 || mem[i].kind == T_NIL) {
+        return i;
+    } else {
+        assert(mem[i].kind == T_CON);
+
+        ptr branch = get_head(i);
+        ptr rest = get_tail(i);
+
+        ptr cond = get_head(branch);
+        ptr code = get_head(get_tail(branch));
+
+        cond = eval(cond);
+        if (mem[cond].kind == T_NIL) {
+            return eval_cond(rest);
+        } else {
+            return eval(code);
+        }
+    }
+}
+
 void register_int_builtins() {
     register_builtin(&lt, "<");
     register_builtin(&gt, ">");
@@ -310,6 +370,8 @@ void register_int_builtins() {
     register_builtin(&is_pair, "pair?");
     register_builtin(&is_list, "list?");
     register_builtin(&eval_quote, "quote");
+    register_builtin(&eval_quasiquote, "quasiquote");
+    register_builtin(&eval_cond, "cond");
 }
 
 void print(ptr i)
@@ -455,7 +517,9 @@ ptr eval(ptr i)
 
         if (fun_head == sym_macro) {
             // macro expansion
+            println(reduced);
             reduced = eval(reduced);
+            println(reduced);
         }
 
         return eval(reduced);
