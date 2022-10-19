@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -24,26 +25,15 @@ ptr new_symbol(char *);
 void new_binding(ptr symbol, ptr expression);
 ptr eval_elems(ptr is);
 ptr eval(ptr i);
-void register_int_builtins(void);
+void register_builtins(void);
 
-void register_builtin(ptr (*fun)(ptr), char *sym)
+void new_builtin(ptr (*fun)(ptr), char *sym)
 {
     assert(builtins_len < MAX_BUILTINS);
     int idx = -builtins_len;
     builtins[builtins_len++] = fun;
     ptr s = new_symbol(sym);
     new_binding(s, idx);
-}
-
-char *kind_str(i64 kind)
-{
-    char *p = "UNINIT\0NIL\0INT\0CONS\0SYM\0EMPTY";
-    while (kind--)
-    {
-        while (*p++)
-            ;
-    }
-    return p;
 }
 
 void init(void)
@@ -79,7 +69,7 @@ void init(void)
     sym_macro = new_symbol("m\\");
     sym_unquote = new_symbol("unquote");
 
-    register_int_builtins();
+    register_builtins();
 }
 
 ptr alloc(void)
@@ -87,8 +77,7 @@ ptr alloc(void)
     if (mem[empty].kind != T_EMT)
     {
         // TODO: collect garbage
-        printf("Out of mem.\n");
-        exit(-1);
+        failwith("Out of memory.");
     }
 
     ptr next = mem[empty].next_free;
@@ -123,6 +112,29 @@ ptr new_nil(void)
     return 0;
 }
 
+ptr new_list(int len, ...)
+{
+    va_list vargs;
+    va_start(vargs, len);
+
+    ptr *args = malloc(len * sizeof(ptr));
+
+    for (int i = 0; i < len; i++)
+    {
+        args[i] = va_arg(vargs, ptr);
+    }
+
+    ptr list = new_nil();
+
+    for (int i = len - 1; i >= 0; i--)
+    {
+        list = new_cons(args[i], list);
+    }
+
+    return list;
+}
+
+
 ptr new_true(void)
 {
     return 1;
@@ -130,13 +142,7 @@ ptr new_true(void)
 
 ptr quoted(ptr i)
 {
-    return new_cons(
-        new_symbol("quote"),
-        new_cons(
-            i,
-            new_nil()
-        )
-    );
+    return new_list(2, new_symbol("quote"), i);
 }
 
 ptr new_symbol(char *symbol)
@@ -401,23 +407,23 @@ ptr eval_cond(ptr i)
     }
 }
 
-void register_int_builtins()
+void register_builtins()
 {
-    register_builtin(&lt, "<");
-    register_builtin(&gt, ">");
-    register_builtin(&lte, "<=");
-    register_builtin(&gte, ">=");
-    register_builtin(&sum, "+");
-    register_builtin(&prod, "*");
+    new_builtin(&lt, "<");
+    new_builtin(&gt, ">");
+    new_builtin(&lte, "<=");
+    new_builtin(&gte, ">=");
+    new_builtin(&sum, "+");
+    new_builtin(&prod, "*");
 
-    register_builtin(&is_nil, "nil?");
-    register_builtin(&is_int, "int?");
-    register_builtin(&is_sym, "sym?");
-    register_builtin(&is_pair, "pair?");
-    register_builtin(&is_list, "list?");
-    register_builtin(&eval_quote, "quote");
-    register_builtin(&eval_quasiquote, "quasiquote");
-    register_builtin(&eval_cond, "cond");
+    new_builtin(&is_nil, "nil?");
+    new_builtin(&is_int, "int?");
+    new_builtin(&is_sym, "sym?");
+    new_builtin(&is_pair, "pair?");
+    new_builtin(&is_list, "list?");
+    new_builtin(&eval_quote, "quote");
+    new_builtin(&eval_quasiquote, "quasiquote");
+    new_builtin(&eval_cond, "cond");
 }
 
 void print(ptr i)
@@ -468,7 +474,6 @@ void println(ptr i)
 
 ptr beta_reduce(ptr code, ptr formal_args, ptr args)
 {
-    // TODO handle macro
     switch (mem[code].kind)
     {
     case T_NIL:
@@ -677,7 +682,7 @@ ptr parse(char **input)
         }
         ++*input;
         ptr symbol = new_symbol(sym);
-        return new_cons(symbol, new_cons(parse(input), new_nil()));
+        return new_list(2, symbol, parse(input));
     }
     else
     {
