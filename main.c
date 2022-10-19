@@ -7,9 +7,12 @@
 #include "assert.h"
 
 #define MEM_LEN 100000
+#define SYM_LEN 1024
+#define MAX_BUILTINS 100
+
 static node_t mem[MEM_LEN] = {0};
 static ptr empty = 0;
-#define SYM_LEN 1024
+
 static sym_t symbols[SYM_LEN] = {0};
 
 static ptr sym_lambda = 0;
@@ -17,7 +20,6 @@ static ptr sym_def = 0;
 static ptr sym_macro = 0;
 static ptr sym_unquote = 0;
 
-#define MAX_BUILTINS 100
 static ptr (*builtins[MAX_BUILTINS])(ptr) = {0};
 static int builtins_len = 1;
 
@@ -134,7 +136,6 @@ ptr new_list(int len, ...)
     return list;
 }
 
-
 ptr new_true(void)
 {
     return 1;
@@ -198,6 +199,18 @@ ptr get_tail(ptr i)
 {
     assert(mem[i].kind == T_CON);
     return mem[i].tail;
+}
+
+ptr elem(int idx, ptr node)
+{
+    if (idx)
+    {
+        return elem(idx - 1, get_tail(node));
+    }
+    else
+    {
+        return get_head(node);
+    }
 }
 
 ptr get_symbol(ptr i)
@@ -392,8 +405,8 @@ ptr eval_cond(ptr i)
         ptr branch = get_head(i);
         ptr rest = get_tail(i);
 
-        ptr cond = get_head(branch);
-        ptr code = get_head(get_tail(branch));
+        ptr cond = elem(0, branch);
+        ptr code = elem(1, branch);
 
         cond = eval(cond);
         if (mem[cond].kind == T_NIL)
@@ -543,8 +556,8 @@ ptr eval(ptr i)
         }
         if (head == sym_def)
         {
-            ptr name = get_head(get_tail(i));
-            ptr def = get_head(get_tail(get_tail(i)));
+            ptr name = elem(1, i);
+            ptr def = elem(2, i);
             new_binding(name, def);
             return 0;
         }
