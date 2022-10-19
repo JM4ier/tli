@@ -111,34 +111,30 @@ ptr new_symbol(char *symbol)
         return 0;
     }
 
-    if (sym_lambda && (!strcmp(symbol, ".\\") || !strcmp(symbol, "lambda") || !strcmp(symbol, "LAMBDA")))
-    {
-        return sym_lambda;
-    }
-
-    if (sym_def && (!strcmp(symbol, "def")))
-    {
-        return sym_def;
-    }
-
-    ptr i = alloc();
-    mem[i].kind = T_SYM;
-
     for (ptr k = 0; k < SYM_LEN; k++)
     {
         if (strlen(symbols[k].name) == 0)
         {
+            // we arrived at the section of unused symbols
+            // we have not found the symbol in the existing table
+            // we add a new symbol
+
+            ptr i = alloc();
+            mem[i].kind = T_SYM;
+            mem[i].symbol = k;
+
             int len = strlen(symbol);
             assert(len > 0 && len < 16);
+
             strcpy(symbols[k].name, symbol);
-            mem[i].symbol = k;
+
             symbols[k].binding = 2; // point to garbage
+            symbols[k].node = i;
             return i;
         }
         else if (!strcmp(symbols[k].name, symbol))
         {
-            mem[i].symbol = k;
-            return i;
+            return symbols[k].node;
         }
     }
 

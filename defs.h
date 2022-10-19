@@ -56,6 +56,7 @@ typedef struct
 typedef struct
 {
     ptr binding;
+    ptr node;
     char name[16];
 } sym_t;
 
