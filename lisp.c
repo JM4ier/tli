@@ -12,27 +12,39 @@ static ptr empty = 0;
 static sym_t symbols[SYM_LEN] = {0};
 
 static ptr sym_lambda = 0, sym_def = 0, sym_macro = 0, sym_unquote = 0;
-static ptr (*builtins[MAX_BUILTINS])(ptr) = {0};
-static int builtins_len = 1;
 
-void new_builtin(ptr (*fun)(ptr), char *sym)
+int is_unquote(ptr i)
 {
-    assert(builtins_len < MAX_BUILTINS);
-    int idx = -builtins_len;
-    builtins[builtins_len++] = fun;
-    ptr s = new_symbol(sym);
-    new_binding(s, idx);
-}
-
-int is_unquote(ptr i) {
     return i == sym_unquote;
 }
 
-char *get_symbol_str(ptr s) {
+int is_lambda(ptr i)
+{
+    return i == sym_lambda;
+}
+
+int is_macro(ptr i)
+{
+    return i == sym_macro;
+}
+
+int is_functionlike(ptr i)
+{
+    return i == sym_lambda || i == sym_macro;
+}
+
+int is_definition(ptr i)
+{
+    return i == sym_def;
+}
+
+char *get_symbol_str(ptr s)
+{
     return symbols[s].name;
 }
 
-ptr get_symbol_binding(ptr s) {
+ptr get_symbol_binding(ptr s)
+{
     return symbols[s].binding;
 }
 
@@ -239,144 +251,6 @@ void new_binding(ptr symbol, ptr expression)
 {
     symbols[get_symbol(symbol)].binding = expression;
 }
-
-
-ptr beta_reduce(ptr code, ptr formal_args, ptr args)
-{
-    switch (mem[code].kind)
-    {
-    case T_NIL:
-    case T_INT:
-        return code;
-    case T_SYM:
-        for (ptr fa = formal_args, a = args; mem[fa].kind != T_NIL; fa = get_tail(fa), a = get_tail(a))
-        {
-            if (get_symbol(code) == get_symbol(get_head(fa)))
-            {
-                return quoted(get_head(a));
-            }
-        }
-        return code;
-    case T_CON:
-    {
-        ptr head = get_head(code);
-        ptr tail = get_tail(code);
-        if (head == sym_lambda)
-        {
-            return code;
-        }
-        ptr new_head = beta_reduce(head, formal_args, args);
-        ptr new_tail = beta_reduce(tail, formal_args, args);
-        if (new_head == head && new_tail == tail)
-        {
-            return code;
-        }
-        else
-        {
-            return new_cons(new_head, new_tail);
-        }
-    }
-    default:
-        failwith("unreachable");
-    }
-}
-
-ptr eval(ptr i)
-{
-    if (i < 0)
-    {
-        return i;
-    }
-    switch (mem[i].kind)
-    {
-    case T_NIL:
-    case T_INT:
-        return i;
-    case T_SYM:
-    {
-        ptr sym = get_symbol(i);
-        ptr bind = symbols[sym].binding;
-        if (bind >= 0 && mem[bind].kind == T_POO)
-        {
-            printf("`%s` is unbound.\n", symbols[sym].name);
-            failwith("");
-        }
-        return bind;
-    }
-    case T_CON:
-    {
-        ptr head = get_head(i);
-        if (head == sym_lambda || head == sym_macro)
-        {
-            return i;
-        }
-        if (head == sym_def)
-        {
-            ptr name = elem(1, i);
-            ptr def = elem(2, i);
-            new_binding(name, def);
-            return 0;
-        }
-        ptr fun = eval(head);
-        ptr args = get_tail(i);
-
-        if (fun < 0)
-        {
-            // builtins behave like macros by default, evaluation must be done by the function itself
-            return builtins[-fun](args);
-        }
-
-        ptr fun_head = get_head(fun);
-
-        assert(fun_head == sym_lambda || fun_head == sym_macro);
-
-        if (fun_head == sym_lambda)
-        {
-            // argument evaluation
-            args = eval_elems(args);
-        }
-
-        ptr fun1 = get_tail(fun);
-        assert(mem[fun1].kind == T_CON);
-        ptr formal_args = get_head(fun1);
-
-        ptr fun2 = get_tail(fun1);
-        assert(mem[fun2].kind == T_CON);
-        ptr fun_body = get_head(fun2);
-
-        ptr reduced = beta_reduce(fun_body, formal_args, args);
-
-        if (fun_head == sym_macro)
-        {
-            // macro expansion
-            reduced = eval(reduced);
-        }
-
-        return eval(reduced);
-    }
-    default:
-        failwith("unreachable");
-    }
-}
-
-ptr eval_elems(ptr is)
-{
-    if (mem[is].kind == T_CON)
-    {
-        ptr head = get_head(is);
-        ptr tail = get_tail(is);
-
-        ptr eval_head = eval(head);
-        ptr eval_tail = eval_elems(tail);
-
-        return new_cons(eval_head, eval_tail);
-    }
-    else
-    {
-        return eval(is);
-    }
-}
-
 
 int main(void)
 {
