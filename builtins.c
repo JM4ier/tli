@@ -210,6 +210,7 @@ void register_builtins(void)
     new_builtin(&gt, ">");
     new_builtin(&lte, "<=");
     new_builtin(&gte, ">=");
+
     new_builtin(&sum, "+");
     new_builtin(&prod, "*");
 
@@ -218,7 +219,9 @@ void register_builtins(void)
     new_builtin(&is_sym, "sym?");
     new_builtin(&is_pair, "pair?");
     new_builtin(&is_list, "list?");
+
     new_builtin(&eval_quote, "quote");
     new_builtin(&eval_quasiquote, "quasiquote");
+
     new_builtin(&eval_cond, "cond");
 }
