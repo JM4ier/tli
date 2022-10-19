@@ -255,6 +255,21 @@ _ORD_(gte, >=)
 _ARITH_(sum, +, 0)
 _ARITH_(prod, *, 1)
 
+#define _CMP_(name, _kind)\
+    ptr name(ptr i)\
+    {\
+        i = get_head(i);\
+        if (i < 0 || mem[i].kind != _kind) {\
+            return new_nil();\
+        } else {\
+            return new_true();\
+        }\
+    }
+_CMP_(is_nil, T_NIL)
+_CMP_(is_int, T_INT)
+_CMP_(is_sym, T_SYM)
+_CMP_(is_pair, T_CON)
+
 void register_int_builtins() {
     register_builtin(&lt, "<");
     register_builtin(&gt, ">");
@@ -262,6 +277,11 @@ void register_int_builtins() {
     register_builtin(&gte, ">=");
     register_builtin(&sum, "+");
     register_builtin(&prod, "*");
+
+    register_builtin(&is_nil, "nil?");
+    register_builtin(&is_int, "int?");
+    register_builtin(&is_sym, "sym?");
+    register_builtin(&is_pair, "pair?");
 }
 
 void print(ptr i)
@@ -350,6 +370,9 @@ ptr beta_reduce(ptr code, ptr formal_args, ptr args)
 
 ptr eval(ptr i)
 {
+    if (i < 0) {
+        return i;
+    }
     switch (mem[i].kind)
     {
     case T_NIL:
@@ -358,7 +381,7 @@ ptr eval(ptr i)
     case T_SYM:
         ptr sym = get_symbol(i);
         ptr bind = symbols[sym].binding;
-        if (mem[bind].kind == T_POO)
+        if (bind >= 0 && mem[bind].kind == T_POO)
         {
             printf("`%s` is unbound.\n", symbols[sym].name);
             assert(false);
