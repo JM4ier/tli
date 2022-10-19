@@ -128,6 +128,17 @@ ptr new_true(void)
     return 1;
 }
 
+ptr quoted(ptr i)
+{
+    return new_cons(
+        new_symbol("quote"),
+        new_cons(
+            i,
+            new_nil()
+        )
+    );
+}
+
 ptr new_symbol(char *symbol)
 {
     if (!strcmp(symbol, "nil") || !strcmp(symbol, "NIL"))
@@ -468,7 +479,7 @@ ptr beta_reduce(ptr code, ptr formal_args, ptr args)
         {
             if (get_symbol(code) == get_symbol(get_head(fa)))
             {
-                return get_head(a);
+                return quoted(get_head(a));
             }
         }
         return code;
