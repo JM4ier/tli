@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include "lisp.h"
-#include "print.h"
 #include "assert.h"
 
 void print(ptr i)

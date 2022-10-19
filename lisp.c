@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include "lisp.h"
 #include "assert.h"
-#include "builtins.h"
-#include "print.h"
 
 #define MEM_LEN 100000
 #define SYM_LEN 1024

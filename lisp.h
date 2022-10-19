@@ -55,6 +55,7 @@ void init(void);
 
 void new_builtin(ptr (*fun)(ptr), char *sym);
 void new_binding(ptr symbol, ptr expression);
+void register_builtins(void);
 
 // construct new nodes
 ptr new_int(i64 value);
@@ -85,5 +86,8 @@ ptr eval(ptr i);
 ptr eval_elems(ptr is);
 
 int is_unquote(ptr i);
+
+void print(ptr i);
+void println(ptr i);
 
 #endif
