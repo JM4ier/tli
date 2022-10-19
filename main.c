@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "defs.h"
+#include "assert.h"
 
 #define MEM_LEN 100000
 static node_t mem[MEM_LEN] = {0};
@@ -270,6 +271,23 @@ _CMP_(is_int, T_INT)
 _CMP_(is_sym, T_SYM)
 _CMP_(is_pair, T_CON)
 
+ptr is_list(ptr i)
+{
+    i = get_head(i);
+    while (i >= 0 && mem[i].kind == T_CON) {
+        i = get_tail(i);
+    }
+    if (i < 0 || mem[i].kind != T_NIL) {
+        return new_nil();
+    } else {
+        return new_true();
+    }
+}
+
+ptr eval_quote(ptr i) {
+    return get_head(i);
+}
+
 void register_int_builtins() {
     register_builtin(&lt, "<");
     register_builtin(&gt, ">");
@@ -282,6 +300,8 @@ void register_int_builtins() {
     register_builtin(&is_int, "int?");
     register_builtin(&is_sym, "sym?");
     register_builtin(&is_pair, "pair?");
+    register_builtin(&is_list, "list?");
+    register_builtin(&eval_quote, "quote");
 }
 
 void print(ptr i)
