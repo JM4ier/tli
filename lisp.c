@@ -6,10 +6,6 @@
 #include "lisp.h"
 #include "assert.h"
 
-#define MEM_LEN 100000
-#define SYM_LEN 1024
-#define MAX_BUILTINS 100
-
 static node_t mem[MEM_LEN] = {0};
 static ptr empty = 0;
 
@@ -34,6 +30,10 @@ int is_unquote(ptr i) {
 
 char *get_symbol_str(ptr s) {
     return symbols[s].name;
+}
+
+ptr get_symbol_binding(ptr s) {
+    return symbols[s].binding;
 }
 
 void init(void)
@@ -484,36 +484,6 @@ ptr parse_list(char **input)
         ptr tail = parse_list(input);
         return new_cons(head, tail);
     }
-}
-
-ptr pars(char *input)
-{
-    char **cursor = &input;
-    return parse(cursor);
-}
-
-void dump(void)
-{
-    printf("-===- DUMP BEGIN -===-\n");
-    for (ptr i = 0; i < MEM_LEN; i++)
-    {
-        if (mem[i].kind == T_POO || mem[i].kind == T_EMT)
-        {
-            continue;
-        }
-        printf("%04ld: `", i);
-        print(i);
-        printf("`\n");
-    }
-    printf("\n");
-    for (ptr s = 0; s < SYM_LEN; s++)
-    {
-        if (strlen(symbols[s].name))
-        {
-            printf(".%03ld: (%03ld) `%s`\n", s, symbols[s].binding, symbols[s].name);
-        }
-    }
-    printf("-===- DUMP END -===-\n");
 }
 
 signed main(void)

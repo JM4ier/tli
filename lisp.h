@@ -17,6 +17,10 @@ typedef int64_t i64;
 #define T_EMT 5 // empty
 #define T_NAT 5 // natively implemented function
 
+#define MEM_LEN 100000
+#define SYM_LEN 1024
+#define MAX_BUILTINS 100
+
 typedef struct
 {
     // Contents of a node
@@ -77,6 +81,7 @@ ptr get_head(ptr i);
 ptr get_tail(ptr i);
 ptr elem(int idx, ptr node);
 char *get_symbol_str(ptr s);
+ptr get_symbol_binding(ptr s);
 
 // eval an expression
 // might have side effects
@@ -89,5 +94,6 @@ int is_unquote(ptr i);
 
 void print(ptr i);
 void println(ptr i);
+void dump(void);
 
 #endif

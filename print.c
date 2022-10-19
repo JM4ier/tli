@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <string.h>
+
 #include "lisp.h"
 #include "assert.h"
 
@@ -46,4 +48,28 @@ void println(ptr i)
 {
     print(i);
     printf("\n");
+}
+
+void dump(void)
+{
+    printf("-===- DUMP BEGIN -===-\n");
+    for (ptr i = 0; i < MEM_LEN; i++)
+    {
+        if (kind(i) == T_POO || kind(i) == T_EMT)
+        {
+            continue;
+        }
+        printf("%04ld: `", i);
+        print(i);
+        printf("`\n");
+    }
+    printf("\n");
+    for (ptr s = 0; s < SYM_LEN; s++)
+    {
+        if (strlen(get_symbol_str(s)))
+        {
+            printf(".%03ld: (%03ld) `%s`\n", s, get_symbol_binding(s), get_symbol_str(s));
+        }
+    }
+    printf("-===- DUMP END -===-\n");
 }
