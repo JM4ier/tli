@@ -510,13 +510,14 @@ void dump() {
         if (mem[i].kind == T_POO || mem[i].kind == T_EMT) {
             continue;
         }
-        printf("%d -> ", i);
-        println(i);
+        printf("%04d: `", i);
+        print(i);
+        printf("`\n");
     }
     printf("\n");
     for (int s = 0; s < SYM_LEN; s++) {
         if (strlen(symbols[s].name)) {
-            printf("%d => %s\n", s, symbols[s].name);
+            printf(".%03d: (%03d) `%s`\n", s, symbols[s].binding, symbols[s].name);
         }
     }
     printf("-===- DUMP END -===-\n");
