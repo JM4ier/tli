@@ -48,7 +48,6 @@ int main(void)
     }
 
     gc();
-    dump();
 
     return 0;
 }

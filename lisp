@@ -1,5 +1,7 @@
 (def true 1)
 
+(def id (.\ (x) x))
+
 (def if (m\ (expr then else)
     `(cond
         (#expr #then)
@@ -7,7 +9,7 @@
     )
 ))
 
-(def id (.\ (x) x))
+(if (= 0 0) 1 2)
 
 (def fold (.\ (init fun list)
     (if (pair? list) 
@@ -52,11 +54,5 @@
 (rev (iter 30 inc 1))
 
 
-
-
-(def x x)
-x
-
-
-(iter 1000 inc 0)
-
+(def partial-add (.\ (a) (.\ (b) (+ a b))))
+(partial-add 4)

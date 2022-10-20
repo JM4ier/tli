@@ -93,6 +93,8 @@ ptr eval(ptr i);
 // eval list, element-wise
 ptr eval_elems(ptr is);
 
+int is_quote(ptr i);
+int is_quasiquote(ptr i);
 int is_unquote(ptr i);
 int is_lambda(ptr i);
 int is_macro(ptr i);

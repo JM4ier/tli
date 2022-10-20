@@ -13,43 +13,75 @@ void new_builtin(ptr (*fun)(ptr), char *sym)
     new_binding(s, idx);
 }
 
-static ptr beta_reduce(ptr code, ptr formal_args, ptr args)
+static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
 {
     switch (kind(code))
     {
-    case T_NIL:
-    case T_INT:
-        return code;
     case T_SYM:
-        for (ptr fa = formal_args, a = args; kind(fa) != T_NIL; fa = get_tail(fa), a = get_tail(a))
+        if (get_symbol(code) == get_symbol(formal_arg) && !inside_quote)
         {
-            if (get_symbol(code) == get_symbol(get_head(fa)))
-            {
-                return quoted(get_head(a));
-            }
+            return quoted(arg);
         }
         return code;
     case T_CON:
     {
-        ptr head = get_head(code);
-        ptr tail = get_tail(code);
-        if (is_lambda(head))
+        ptr hd = get_head(code);
+        if (is_quote(hd))
         {
             return code;
         }
-        ptr new_head = beta_reduce(head, formal_args, args);
-        ptr new_tail = beta_reduce(tail, formal_args, args);
-        if (new_head == head && new_tail == tail)
+        if (is_unquote(hd))
         {
-            return code;
+            ptr body = get_tail(code);
+            body = beta_reduce(body, formal_arg, arg, false);
+            // TODO no copying if same
+            return new_cons(hd, body);
         }
+        else if (is_quasiquote(hd)) 
+        {
+            ptr body = get_tail(code);
+            body = beta_reduce(body, formal_arg, arg, true);
+            // TODO no copying if same
+            return new_cons(hd, body);
+        }
+        if (is_functionlike(hd))
+        {
+            ptr arg_list = elem(1, code);
+            ptr fun_body = elem(2, code);
+
+            ptr cursor = arg_list;
+            while (kind(cursor) == T_CON)
+            {
+                ptr fun_arg = elem(0, cursor);
+                if (fun_arg == formal_arg)
+                {
+                    return code;
+                }
+                cursor = get_tail(cursor);
+            }
+            fun_body = beta_reduce(fun_body, formal_arg, arg, inside_quote);
+            return new_list(3, hd, arg_list, fun_body);
+        } 
         else
         {
-            return new_cons(new_head, new_tail);
+            ptr head = get_head(code);
+            ptr tail = get_tail(code);
+
+            ptr new_head = beta_reduce(head, formal_arg, arg, inside_quote);
+            ptr new_tail = beta_reduce(tail, formal_arg, arg, inside_quote);
+
+            if (new_head == head && new_tail == tail)
+            {
+                return code;
+            }
+            else
+            {
+                return new_cons(new_head, new_tail);
+            }
         }
     }
     default:
-        failwith("unreachable");
+        return code;
     }
 }
 
@@ -86,6 +118,7 @@ ptr eval(ptr i)
         {
             ptr name = elem(1, i);
             ptr def = elem(2, i);
+            def = eval(def);
             new_binding(name, def);
             return 0;
         }
@@ -98,7 +131,8 @@ ptr eval(ptr i)
             return builtins[-fun](args);
         }
 
-        ptr fun_head = get_head(fun);
+
+        ptr fun_head = elem(0, fun);
 
         assert(is_functionlike(fun_head));
 
@@ -108,23 +142,27 @@ ptr eval(ptr i)
             args = eval_elems(args);
         }
 
-        ptr fun1 = get_tail(fun);
-        assert(kind(fun1) == T_CON);
-        ptr formal_args = get_head(fun1);
+        ptr formal_args = elem(1, fun);
+        ptr fun_body    = elem(2, fun);
 
-        ptr fun2 = get_tail(fun1);
-        assert(kind(fun2) == T_CON);
-        ptr fun_body = get_head(fun2);
+        while (kind(formal_args) != T_NIL)
+        {
+            ptr f_arg = get_head(formal_args);
+            ptr c_arg = get_head(args);
 
-        ptr reduced = beta_reduce(fun_body, formal_args, args);
+            fun_body = beta_reduce(fun_body, f_arg, c_arg, false);
+
+            formal_args = get_tail(formal_args);
+            args = get_tail(args);
+        }
 
         if (is_macro(fun_head))
         {
             // macro expansion
-            reduced = eval(reduced);
+            fun_body = eval(fun_body);
         }
 
-        return eval(reduced);
+        return eval(fun_body);
     }
     default:
         failwith("unreachable");

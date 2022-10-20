@@ -10,7 +10,7 @@ static ptr empty = 0;
 
 static sym_t symbols[SYM_LEN] = {0};
 
-static ptr sym_lambda = 0, sym_def = 0, sym_macro = 0, sym_unquote = 0;
+static ptr sym_lambda = 0, sym_def = 0, sym_macro = 0, sym_unquote = 0, sym_quote = 0, sym_quasiquote = 0;
 
 // nodes that are reserved for builtin use
 // should never be GC'ed
@@ -19,6 +19,16 @@ static ptr builtin_use;
 int is_unquote(ptr i)
 {
     return i == sym_unquote;
+}
+
+int is_quote(ptr i)
+{
+    return i == sym_quote;
+}
+
+int is_quasiquote(ptr i)
+{
+    return i == sym_quasiquote;
 }
 
 int is_lambda(ptr i)
@@ -59,7 +69,9 @@ static void init_builtin_symbols(void) {
     make_sym(sym_lambda, ".\\");
     make_sym(sym_def, "def");
     make_sym(sym_macro, "m\\");
+    make_sym(sym_quote, "quote");
     make_sym(sym_unquote, "unquote");
+    make_sym(sym_quasiquote, "quasiquote");
 #undef make_sym
 }
 
@@ -241,7 +253,13 @@ ptr new_true(void)
 
 ptr quoted(ptr i)
 {
-    return new_list(2, new_symbol("quote"), i);
+    switch (kind(i)) {
+        case T_CON:
+        case T_SYM:
+            return new_list(2, new_symbol("quote"), i);
+        default:
+            return i;
+    }
 }
 
 ptr new_symbol(char *symbol)
