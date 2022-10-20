@@ -67,3 +67,12 @@
 
 (defun square(x) (* x x))
 (square 9)
+
+(defun fib.aux(f1 f2 n)
+    (if (= n 0)
+        f1
+        (fib.aux f2 (+ f1 f2) (- n 1))
+    )
+)
+(defun fib(n) (fib.aux 0 1 n))
+(fib 20)
