@@ -36,6 +36,7 @@ int main(void)
         ptr parsed = parse(cursor);
         ptr evaled = eval(parsed);
         println(evaled);
+        strip(cursor);
     }
 
     return 0;

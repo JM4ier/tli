@@ -102,5 +102,6 @@ void dump(void);
 
 // parsing
 ptr parse(char **input);
+void strip(char **input);
 
 #endif

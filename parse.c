@@ -14,7 +14,7 @@ static int is_whitespace(char c)
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
-static void strip(char **i)
+void strip(char **i)
 {
     while (is_whitespace(**i))
     {

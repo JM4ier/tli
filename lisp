@@ -50,3 +50,12 @@
 
 (def inc (.\ (x) (+ 1 x)))
 (rev (iter 30 inc 1))
+
+
+
+
+(def x x)
+x
+
+
+
