@@ -80,23 +80,29 @@ _ORD_(gte, >=)
 _ARITH_(sum, +, 0)
 _ARITH_(prod, *, 1)
 
-static ptr minus(ptr i) {
+static ptr minus(ptr i)
+{
     i = eval_elems(i);
     ptr arg0 = get_head(i);
-    if (kind(get_tail(i)) != T_NIL) {
+    if (kind(get_tail(i)) != T_NIL)
+    {
         ptr arg1 = elem(1, i);
         return new_int(get_int(arg0) - get_int(arg1));
-    } else {
+    }
+    else
+    {
         return new_int(-get_int(arg0));
     }
 }
 
-static ptr div(ptr i) {
+static ptr div(ptr i)
+{
     i = eval_elems(i);
     return new_int(get_int(elem(0, i)) / get_int(elem(1, i)));
 }
 
-static ptr mod(ptr i) {
+static ptr mod(ptr i)
+{
     i = eval_elems(i);
     return new_int(get_int(elem(0, i)) % get_int(elem(1, i)));
 }
@@ -222,22 +228,26 @@ static ptr eval_cond(ptr i)
     }
 }
 
-static ptr cons(ptr i) {
+static ptr cons(ptr i)
+{
     i = eval_elems(i);
     ptr hd = elem(0, i);
     ptr tl = elem(1, i);
     return new_cons(hd, tl);
 }
 
-static ptr head(ptr i) {
+static ptr head(ptr i)
+{
     return get_head(get_head(eval_elems(i)));
 }
 
-static ptr tail(ptr i) {
+static ptr tail(ptr i)
+{
     return get_tail(get_head(eval_elems(i)));
 }
 
-static ptr el(ptr i) {
+static ptr el(ptr i)
+{
     i = eval_elems(i);
     ptr idx = elem(0, i);
     ptr list = elem(1, i);

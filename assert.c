@@ -14,7 +14,8 @@ void __print_backtrace__(void)
 
     printf("\n--- BACKTRACE(%d) ---\n", num_funs);
 
-    for (int i = 0; i < num_funs; i++) {
+    for (int i = 0; i < num_funs; i++)
+    {
         printf(" %s\n", names[i]);
     }
 

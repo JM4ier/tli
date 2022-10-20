@@ -61,9 +61,10 @@ ptr get_symbol_binding(ptr s)
     return symbols[s].binding;
 }
 
-static void init_builtin_symbols(void) {
-#define make_sym(var_name, sym)\
-    var_name = new_symbol(sym);\
+static void init_builtin_symbols(void)
+{
+#define make_sym(var_name, sym) \
+    var_name = new_symbol(sym); \
     new_binding(var_name, var_name)
 
     make_sym(sym_lambda, ".\\");
@@ -158,13 +159,17 @@ static void reconstruct_empty_list(void)
     ptr prev_empty = 0;
     for (ptr i = builtin_use; i < MEM_LEN; i++)
     {
-        if (mem[i].gc == used) {
+        if (mem[i].gc == used)
+        {
             continue;
         }
         mem[i].kind = T_EMT;
-        if (prev_empty) {
+        if (prev_empty)
+        {
             mem[i].next_free = prev_empty;
-        } else {
+        }
+        else
+        {
             mem[i].next_free = i;
         }
         prev_empty = i;
@@ -253,12 +258,13 @@ ptr new_true(void)
 
 ptr quoted(ptr i)
 {
-    switch (kind(i)) {
-        case T_CON:
-        case T_SYM:
-            return new_list(2, new_symbol("quote"), i);
-        default:
-            return i;
+    switch (kind(i))
+    {
+    case T_CON:
+    case T_SYM:
+        return new_list(2, new_symbol("quote"), i);
+    default:
+        return i;
     }
 }
 

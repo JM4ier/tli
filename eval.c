@@ -37,7 +37,7 @@ static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
             // TODO no copying if same
             return new_cons(hd, body);
         }
-        else if (is_quasiquote(hd)) 
+        else if (is_quasiquote(hd))
         {
             ptr body = get_tail(code);
             body = beta_reduce(body, formal_arg, arg, true);
@@ -61,7 +61,7 @@ static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
             }
             fun_body = beta_reduce(fun_body, formal_arg, arg, inside_quote);
             return new_list(3, hd, arg_list, fun_body);
-        } 
+        }
         else
         {
             ptr head = get_head(code);
@@ -131,7 +131,6 @@ ptr eval(ptr i)
             return builtins[-fun](args);
         }
 
-
         ptr fun_head = elem(0, fun);
 
         assert(is_functionlike(fun_head));
@@ -143,7 +142,7 @@ ptr eval(ptr i)
         }
 
         ptr formal_args = elem(1, fun);
-        ptr fun_body    = elem(2, fun);
+        ptr fun_body = elem(2, fun);
 
         while (kind(formal_args) != T_NIL)
         {
