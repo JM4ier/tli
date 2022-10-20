@@ -44,7 +44,7 @@ static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
             // TODO no copying if same
             return new_cons(hd, body);
         }
-        if (is_functionlike(hd))
+        if (is_functionlike(hd) && !inside_quote)
         {
             ptr arg_list = elem(1, code);
             ptr fun_body = elem(2, code);

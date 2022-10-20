@@ -56,3 +56,14 @@
 
 (def partial-add (.\ (a) (.\ (b) (+ a b))))
 (partial-add 4)
+
+(def defmacro (m\ (name args body)
+    `(def #name (m\ #args #body))
+))
+
+(defmacro defun (name args body)
+    `(def #name (.\ #args #body))
+)
+
+(defun square(x) (* x x))
+(square 9)
