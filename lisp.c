@@ -7,6 +7,13 @@
 
 #define LISP_LEN (1 << 20)
 
+static int iter = 1;
+
+int get_iter(void)
+{
+    return iter;
+}
+
 int main(void)
 {
     // lisp source to be interpreted
@@ -37,7 +44,11 @@ int main(void)
         ptr evaled = eval(parsed);
         println(evaled);
         strip(cursor);
+        iter++;
     }
+
+    gc();
+    dump();
 
     return 0;
 }

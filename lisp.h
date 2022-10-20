@@ -42,8 +42,8 @@ typedef struct
         ptr next_free;
         ptr _data[2];
     };
-    // number of references to this node, 0 == unused
-    i64 refs;
+    // GC data
+    i64 gc;
     // kind of node
     i64 kind;
 } node_t;
@@ -69,6 +69,9 @@ ptr new_list(int len, ...);
 ptr new_true(void);
 ptr new_symbol(char *symbol);
 ptr quoted(ptr i);
+
+// garbage collection
+void gc(void);
 
 // get kind of data
 i64 kind(ptr i);
@@ -103,5 +106,7 @@ void dump(void);
 // parsing
 ptr parse(char **input);
 void strip(char **input);
+
+int get_iter(void);
 
 #endif

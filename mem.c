@@ -50,14 +50,11 @@ ptr get_symbol_binding(ptr s)
 void init(void)
 {
     mem[0].kind = T_NIL;
-    mem[0].refs = 1;
 
     mem[1].kind = T_INT;
-    mem[1].refs = 1;
     mem[1].value = 1;
 
     mem[2].kind = T_POO;
-    mem[2].refs = 1;
 
     int len = sizeof(mem) / sizeof(mem[0]);
 
@@ -83,12 +80,85 @@ void init(void)
     register_builtins();
 }
 
+static int used;
+static void mark_globals(void)
+{
+    for (ptr s = 0; s < SYM_LEN; s++)
+    {
+        if (symbols[s].name[0] != 0)
+        {
+            int binding = symbols[s].binding;
+            int k = kind(binding);
+            if (k != T_POO && k != T_EMT && k != T_NAT)
+            {
+                mem[binding].gc = used;
+            }
+        }
+    }
+}
+
+static void mark_reachable(ptr i)
+{
+    if (mem[i].gc != used)
+    {
+        return;
+    }
+    if (kind(i) == T_CON)
+    {
+        ptr h = get_head(i);
+        ptr t = get_tail(i);
+        mem[h].gc = used;
+        mem[t].gc = used;
+        // todo optimize calls to this
+        mark_reachable(h);
+        mark_reachable(t);
+    }
+}
+
+static void mark_all_reachable(void)
+{
+    for (ptr i = 0; i < MEM_LEN; i++)
+    {
+        mark_reachable(i);
+    }
+}
+
+static void reconstruct_empty_list(void)
+{
+    ptr prev_empty = 0;
+    for (ptr i = 10; i < MEM_LEN; i++)
+    {
+        if (mem[i].gc == used) {
+            continue;
+        }
+        mem[i].kind = T_EMT;
+        if (prev_empty) {
+            mem[i].next_free = prev_empty;
+        } else {
+            mem[i].next_free = i;
+        }
+        prev_empty = i;
+    }
+    empty = prev_empty;
+}
+
+void gc(void)
+{
+    used = get_iter();
+    mark_globals();
+    mark_all_reachable();
+    reconstruct_empty_list();
+}
+
 ptr alloc(void)
 {
-    if (mem[empty].kind != T_EMT)
+    if (kind(empty) != T_EMT)
     {
-        // TODO: collect garbage
-        failwith("Out of memory.");
+        gc();
+        if (kind(empty) != T_EMT)
+        {
+            failwith("Out of Memory.");
+        }
     }
 
     ptr next = mem[empty].next_free;
@@ -97,6 +167,7 @@ ptr alloc(void)
 
     node_t zero = {0};
     mem[new] = zero;
+    mem[new].gc = get_iter();
 
     return new;
 }
