@@ -110,6 +110,16 @@ static void mark_globals(void)
     }
 }
 
+static void mark_reachable(ptr i);
+static void maybe_mark(ptr i)
+{
+    if (mem[i].gc != used)
+    {
+        mem[i].gc = used;
+        mark_reachable(i);
+    }
+}
+
 static void mark_reachable(ptr i)
 {
     if (mem[i].gc != used)
@@ -118,13 +128,8 @@ static void mark_reachable(ptr i)
     }
     if (kind(i) == T_CON)
     {
-        ptr h = get_head(i);
-        ptr t = get_tail(i);
-        mem[h].gc = used;
-        mem[t].gc = used;
-        // todo optimize calls to this
-        mark_reachable(h);
-        mark_reachable(t);
+        maybe_mark(get_head(i));
+        maybe_mark(get_tail(i));
     }
 }
 
