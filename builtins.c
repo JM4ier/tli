@@ -254,6 +254,12 @@ static ptr el(ptr i)
     return elem(get_int(idx), list);
 }
 
+static ptr list(ptr i)
+{
+    i = eval_elems(i);
+    return i;
+}
+
 void register_builtins(void)
 {
     new_builtin(&eq, "=");
@@ -281,6 +287,7 @@ void register_builtins(void)
     new_builtin(&eval_cond, "cond");
 
     new_builtin(&cons, "cons");
+    new_builtin(&list, "list");
     new_builtin(&head, "hd");
     new_builtin(&tail, "tl");
     new_builtin(&el, "el");

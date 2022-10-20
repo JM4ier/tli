@@ -1,4 +1,5 @@
 (def true 1)
+(def else true)
 
 (def id (.\ (x) x))
 
@@ -76,3 +77,21 @@
 )
 (defun fib(n) (fib.aux 0 1 n))
 (fib 20)
+
+(defun sort.insert(xs x)
+    (cond
+        ((nil? xs)      (list x))
+        ((< x (hd xs))  (cons x xs))
+        (else           (cons (hd xs) (sort.insert (tl xs) x)))
+    )
+)
+(defun sort(xs)
+    (cond
+        ((nil? xs)      xs)
+        (else           (sort.insert (sort (tl xs)) (hd xs)))
+    )
+)
+
+(def long-list (rev (iter 10 inc 1)))
+long-list
+(sort long-list)
