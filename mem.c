@@ -12,6 +12,10 @@ static sym_t symbols[SYM_LEN] = {0};
 
 static ptr sym_lambda = 0, sym_def = 0, sym_macro = 0, sym_unquote = 0;
 
+// nodes that are reserved for builtin use
+// should never be GC'ed
+static ptr builtin_use;
+
 int is_unquote(ptr i)
 {
     return i == sym_unquote;
@@ -47,6 +51,18 @@ ptr get_symbol_binding(ptr s)
     return symbols[s].binding;
 }
 
+static void init_builtin_symbols(void) {
+#define make_sym(var_name, sym)\
+    var_name = new_symbol(sym);\
+    new_binding(var_name, var_name)
+
+    make_sym(sym_lambda, ".\\");
+    make_sym(sym_def, "def");
+    make_sym(sym_macro, "m\\");
+    make_sym(sym_unquote, "unquote");
+#undef make_sym
+}
+
 void init(void)
 {
     mem[0].kind = T_NIL;
@@ -72,12 +88,9 @@ void init(void)
         }
     }
 
-    sym_lambda = new_symbol(".\\");
-    sym_def = new_symbol("def");
-    sym_macro = new_symbol("m\\");
-    sym_unquote = new_symbol("unquote");
-
+    init_builtin_symbols();
     register_builtins();
+    builtin_use = empty;
 }
 
 static int used;
@@ -126,7 +139,7 @@ static void mark_all_reachable(void)
 static void reconstruct_empty_list(void)
 {
     ptr prev_empty = 0;
-    for (ptr i = 10; i < MEM_LEN; i++)
+    for (ptr i = builtin_use; i < MEM_LEN; i++)
     {
         if (mem[i].gc == used) {
             continue;
