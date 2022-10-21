@@ -123,7 +123,7 @@ static void mark_globals(void)
     }
 }
 
-static void mark_stack(void)
+void stack_search_impl(void)
 {
     i64 dummy = 0;
     i64 *walker = &dummy;
@@ -176,6 +176,7 @@ static void reconstruct_empty_list(void)
             continue;
         }
         mem[i].kind = T_EMT;
+        mem[i].gc = ~0;
         if (prev_empty)
         {
             mem[i].next_free = prev_empty;
@@ -191,9 +192,10 @@ static void reconstruct_empty_list(void)
 
 void gc(void)
 {
-    gen = (gen + 1) & 0xF;
+    gen++;
+    printf("GC go brrrr %03d.\n", gen);
     mark_globals();
-    mark_stack();
+    stack_search();
     mark_all_reachable();
     reconstruct_empty_list();
 }
@@ -318,6 +320,15 @@ ptr new_symbol(char *symbol)
     failwith("Out of Symbols.");
 }
 
+void check(ptr i) {
+    if (mem[i].gc == ~0 && mem[i].kind == T_EMT)
+    {
+        printf("%d ", i);
+        println(i);
+        failwith("we freed a node that is still in use :(");
+    }
+}
+
 i64 kind(ptr i)
 {
     if (i < 0)
@@ -332,24 +343,28 @@ i64 kind(ptr i)
 
 i64 get_int(ptr i)
 {
+    check(i);
     assert(mem[i].kind == T_INT);
     return mem[i].value;
 }
 
 ptr get_head(ptr i)
 {
+    check(i);
     assert(mem[i].kind == T_CON);
     return mem[i].head;
 }
 
 ptr get_tail(ptr i)
 {
+    check(i);
     assert(mem[i].kind == T_CON);
     return mem[i].tail;
 }
 
 ptr elem(int idx, ptr node)
 {
+    check(node);
     if (idx)
     {
         return elem(idx - 1, get_tail(node));
@@ -362,12 +377,14 @@ ptr elem(int idx, ptr node)
 
 ptr get_symbol(ptr i)
 {
+    check(i);
     assert(mem[i].kind == T_SYM);
     return mem[i].symbol;
 }
 
 ptr get_nil(ptr i)
 {
+    check(i);
     assert(mem[i].kind == T_NIL);
     return 0;
 }

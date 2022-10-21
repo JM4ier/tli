@@ -113,4 +113,7 @@ int get_iter(void);
 
 extern i64 *stack_top;
 
+extern void stack_search(void);
+void stack_search_impl(void);
+
 #endif
