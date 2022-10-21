@@ -111,4 +111,6 @@ void strip(char **input);
 
 int get_iter(void);
 
+extern i64 *stack_top;
+
 #endif

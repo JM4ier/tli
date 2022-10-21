@@ -106,7 +106,7 @@ void init(void)
     builtin_use = empty;
 }
 
-static int used;
+static int gen = 1;
 static void mark_globals(void)
 {
     for (ptr s = 0; s < SYM_LEN; s++)
@@ -117,8 +117,20 @@ static void mark_globals(void)
             int k = kind(binding);
             if (k != T_POO && k != T_EMT && k != T_NAT)
             {
-                mem[binding].gc = used;
+                mem[binding].gc = gen;
             }
+        }
+    }
+}
+
+static void mark_stack(void)
+{
+    i64 dummy = 0;
+    i64 *walker = &dummy;
+    while (walker++ < stack_top) {
+        if (*walker < MEM_LEN && *walker > 0)
+        {
+            mem[*walker].gc = gen;
         }
     }
 }
@@ -126,16 +138,16 @@ static void mark_globals(void)
 static void mark_reachable(ptr i);
 static void maybe_mark(ptr i)
 {
-    if (mem[i].gc != used)
+    if (mem[i].gc != gen)
     {
-        mem[i].gc = used;
+        mem[i].gc = gen;
         mark_reachable(i);
     }
 }
 
 static void mark_reachable(ptr i)
 {
-    if (mem[i].gc != used)
+    if (mem[i].gc != gen)
     {
         return;
     }
@@ -159,7 +171,7 @@ static void reconstruct_empty_list(void)
     ptr prev_empty = 0;
     for (ptr i = builtin_use; i < MEM_LEN; i++)
     {
-        if (mem[i].gc == used)
+        if (mem[i].gc == gen)
         {
             continue;
         }
@@ -179,8 +191,9 @@ static void reconstruct_empty_list(void)
 
 void gc(void)
 {
-    used = get_iter();
+    gen = (gen + 1) & 0xF;
     mark_globals();
+    mark_stack();
     mark_all_reachable();
     reconstruct_empty_list();
 }
@@ -202,7 +215,7 @@ ptr alloc(void)
 
     node_t zero = {0};
     mem[new] = zero;
-    mem[new].gc = get_iter();
+    mem[new].gc = gen;
 
     return new;
 }

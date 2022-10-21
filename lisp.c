@@ -14,8 +14,13 @@ int get_iter(void)
     return iter;
 }
 
+i64 *stack_top;
+
 int main(void)
 {
+    i64 dummy;
+    stack_top = &dummy;
+
     // lisp source to be interpreted
     static char lisp[LISP_LEN] = {0};
 

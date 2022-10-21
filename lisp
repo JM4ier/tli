@@ -92,6 +92,6 @@
     )
 )
 
-(def long-list (rev (iter 10 inc 1)))
+(def long-list (rev (iter 100 inc 1)))
 long-list
 (sort long-list)
