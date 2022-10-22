@@ -209,7 +209,7 @@ void gc(void)
     reconstruct_empty_list();
 }
 
-ptr alloc(void)
+static ptr alloc(void)
 {
     if (kind(empty) != T_EMT)
     {
@@ -231,7 +231,7 @@ ptr alloc(void)
     return new;
 }
 
-void check(ptr i) {
+static void check(ptr i) {
     if (mem[i].gc == ~0 && mem[i].kind == T_EMT)
     {
         printf("%ld ", i);
