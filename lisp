@@ -78,20 +78,27 @@
 (defun fib(n) (fib.aux 0 1 n))
 (fib 20)
 
-(defun sort.insert(xs x)
+(defun sort.join(bwd fwd)
     (cond
-        ((nil? xs)      (list x))
-        ((< x (hd xs))  (cons x xs))
-        (else           (cons (hd xs) (sort.insert (tl xs) x)))
+        ((nil? bwd) fwd)
+        (else (sort.join (tl bwd) (cons (hd bwd) fwd)))
     )
 )
-(defun sort(xs)
+(defun sort.insert(ys xs x)
     (cond
-        ((nil? xs)      xs)
-        (else           (sort.insert (sort (tl xs)) (hd xs)))
+        ((nil? xs)      (sort.join ys (list x)))
+        ((< x (hd xs))  (sort.join ys (cons x xs)))
+        (else           (sort.insert (cons (hd xs) ys) (tl xs) x))
     )
 )
+(defun sort.tr(unsorted sorted)
+    (cond
+        ((nil? unsorted) sorted)
+        (else (sort.tr (tl unsorted) (sort.insert nil sorted (hd unsorted))))
+    )
+)
+(defun sort(xs) (sort.tr xs nil))
 
-(def long-list (rev (iter 100 inc 1)))
+(def long-list (rev (iter 500 inc 1)))
 long-list
 (sort long-list)
