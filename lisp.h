@@ -2,6 +2,7 @@
 #define __LISP_DEFS_H__
 
 #include <stdint.h>
+#include "const.h"
 
 typedef int64_t ptr;
 typedef int64_t i64;
@@ -16,13 +17,6 @@ typedef int64_t i64;
 #define T_SYM 4 // symbol
 #define T_EMT 5 // empty
 #define T_NAT 6 // natively implemented function
-
-#define MEM_LEN 100000
-#define SYM_LEN 1024
-#define MAX_BUILTINS 100
-
-// maximal usage in percent
-#define MAX_MEMORY_USAGE 60
 
 typedef struct
 {
