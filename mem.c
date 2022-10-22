@@ -249,7 +249,7 @@ ptr new_list(int len, ...)
     va_list vargs;
     va_start(vargs, len);
 
-    ptr *args = malloc(len * sizeof(ptr));
+    ptr args[len];
 
     for (int i = 0; i < len; i++)
     {
