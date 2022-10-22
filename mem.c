@@ -323,7 +323,7 @@ ptr new_symbol(char *symbol)
 void check(ptr i) {
     if (mem[i].gc == ~0 && mem[i].kind == T_EMT)
     {
-        printf("%d ", i);
+        printf("%ld ", i);
         println(i);
         failwith("we freed a node that is still in use :(");
     }

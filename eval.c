@@ -87,12 +87,9 @@ static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
 
 ptr eval(ptr i)
 {
-    if (i < 0)
-    {
-        return i;
-    }
     switch (kind(i))
     {
+    case T_NAT:
     case T_NIL:
     case T_INT:
         return i;
@@ -100,7 +97,7 @@ ptr eval(ptr i)
     {
         ptr sym = get_symbol(i);
         ptr bind = get_symbol_binding(sym);
-        if (bind >= 0 && kind(bind) == T_POO)
+        if (kind(bind) == T_POO)
         {
             printf("`%s` is unbound.\n", get_symbol_str(sym));
             failwith("");
@@ -120,12 +117,12 @@ ptr eval(ptr i)
             ptr def = elem(2, i);
             def = eval(def);
             new_binding(name, def);
-            return 0;
+            return new_nil();
         }
         ptr fun = eval(head);
         ptr args = get_tail(i);
 
-        if (fun < 0)
+        if (kind(fun) == T_NAT)
         {
             // builtins behave like macros by default, evaluation must be done by the function itself
             return builtins[-fun](args);

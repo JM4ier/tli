@@ -99,6 +99,7 @@
 )
 (defun sort(xs) (sort.tr xs nil))
 
-(def long-list (rev (iter 500 inc 1)))
+(def long-list (rev (iter 10 inc 1)))
 long-list
 (sort long-list)
+(sort (list 1 2 3 0 (- 2) (- 3) 10000))
