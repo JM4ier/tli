@@ -170,6 +170,7 @@ static void mark_all_reachable(void)
 static void reconstruct_empty_list(void)
 {
     ptr prev_empty = 0;
+    int free_memory = 0;
     for (ptr i = builtin_use; i < MEM_LEN; i++)
     {
         if (mem[i].gc == gen || kind(i) == T_SYM)
@@ -178,6 +179,7 @@ static void reconstruct_empty_list(void)
         }
         mem[i].kind = T_EMT;
         mem[i].gc = ~0;
+        free_memory++;
         if (prev_empty)
         {
             mem[i].next_free = prev_empty;
@@ -189,12 +191,18 @@ static void reconstruct_empty_list(void)
         prev_empty = i;
     }
     empty = prev_empty;
+
+    int usage = 100 - 100 * free_memory / MEM_LEN;
+    printf("GC go brrrr... (%d)%%\n", usage);
+    if (usage > MAX_MEMORY_USAGE) {
+        printf("Out of memory.\n");
+        exit(-1);
+    }
 }
 
 void gc(void)
 {
     gen = (gen + 1) & ((~0) >> 1);
-    printf("GC go brrrr %03d.\n", gen);
     mark_globals();
     stack_search();
     mark_all_reachable();

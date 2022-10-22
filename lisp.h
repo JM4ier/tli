@@ -21,6 +21,9 @@ typedef int64_t i64;
 #define SYM_LEN 1024
 #define MAX_BUILTINS 100
 
+// maximal usage in percent
+#define MAX_MEMORY_USAGE 60
+
 typedef struct
 {
     // Contents of a node
