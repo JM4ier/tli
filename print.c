@@ -6,13 +6,11 @@
 
 void print(ptr i)
 {
-    if (i < 0)
-    {
-        printf("<builtin>");
-        return;
-    }
     switch (kind(i))
     {
+    case T_NAT:
+        printf("<builtin>");
+        return;
     case T_INT:
         printf("%ld", get_int(i));
         return;
@@ -22,14 +20,25 @@ void print(ptr i)
     case T_SYM:
         printf("%s", get_symbol_str(get_symbol(i)));
         return;
-    default:
+    case T_EMT:
+        printf("<empty>");
+        failwith("somehow managed to print non existent thing");
+    case T_POO:
+        printf("<?>");
+        failwith("somehow managed to print garbage");
+    case T_CON:
         break;
+    default:
+        printf("<unknown kind %ld>", kind(i));
+        failwith("somehow managed to corrupt kind");
     }
     assert(kind(i) == T_CON);
     printf("(");
     while (kind(i) == T_CON)
     {
-        print(get_head(i));
+        ptr head = get_head(i);
+        assert(head != i);
+        print(head);
         i = get_tail(i);
         if (kind(i) != T_NIL)
         {

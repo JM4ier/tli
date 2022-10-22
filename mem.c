@@ -114,8 +114,7 @@ static void mark_globals(void)
         if (symbols[s].name[0] != 0)
         {
             int binding = symbols[s].binding;
-            int k = kind(binding);
-            if (k != T_POO && k != T_EMT && k != T_NAT)
+            if (kind(binding) != T_NAT)
             {
                 mem[binding].gc = gen;
             }
@@ -123,11 +122,12 @@ static void mark_globals(void)
     }
 }
 
+ptr *walker;
 void stack_search_impl(void)
 {
-    i64 dummy = 0;
-    i64 *walker = &dummy;
-    while (walker++ < stack_top) {
+    ptr dummy = 0;
+    walker = &dummy;
+    while (++walker != stack_top) {
         if (*walker < MEM_LEN && *walker > 0)
         {
             mem[*walker].gc = gen;
@@ -138,6 +138,7 @@ void stack_search_impl(void)
 static void mark_reachable(ptr i);
 static void maybe_mark(ptr i)
 {
+    if (i < 0) return;
     if (mem[i].gc != gen)
     {
         mem[i].gc = gen;
@@ -171,7 +172,7 @@ static void reconstruct_empty_list(void)
     ptr prev_empty = 0;
     for (ptr i = builtin_use; i < MEM_LEN; i++)
     {
-        if (mem[i].gc == gen)
+        if (mem[i].gc == gen || kind(i) == T_SYM)
         {
             continue;
         }
@@ -192,7 +193,7 @@ static void reconstruct_empty_list(void)
 
 void gc(void)
 {
-    gen++;
+    gen = (gen + 1) & ((~0) >> 1);
     printf("GC go brrrr %03d.\n", gen);
     mark_globals();
     stack_search();
@@ -222,6 +223,15 @@ ptr alloc(void)
     return new;
 }
 
+void check(ptr i) {
+    if (mem[i].gc == ~0 && mem[i].kind == T_EMT)
+    {
+        printf("%ld ", i);
+        println(i);
+        failwith("we freed a node that is still in use :(");
+    }
+}
+
 ptr new_int(i64 value)
 {
     ptr i = alloc();
@@ -234,6 +244,8 @@ ptr new_cons(ptr head, ptr tail)
 {
     ptr i = alloc();
     mem[i].kind = T_CON;
+    check(head);
+    check(tail);
     mem[i].head = head;
     mem[i].tail = tail;
     return i;
@@ -273,6 +285,7 @@ ptr new_true(void)
 
 ptr quoted(ptr i)
 {
+    check(i);
     switch (kind(i))
     {
     case T_CON:
@@ -318,15 +331,6 @@ ptr new_symbol(char *symbol)
     }
 
     failwith("Out of Symbols.");
-}
-
-void check(ptr i) {
-    if (mem[i].gc == ~0 && mem[i].kind == T_EMT)
-    {
-        printf("%ld ", i);
-        println(i);
-        failwith("we freed a node that is still in use :(");
-    }
 }
 
 i64 kind(ptr i)

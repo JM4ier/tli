@@ -128,6 +128,14 @@ ptr eval(ptr i)
             return builtins[-fun](args);
         }
 
+        if (kind(fun) != T_CON) {
+
+            printf("unexpected form of function application: (");
+            print(fun);
+            printf(" #args)\n");
+            failwith("wrong function application");
+        }
+
         ptr fun_head = elem(0, fun);
 
         assert(is_functionlike(fun_head));

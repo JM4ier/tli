@@ -15,7 +15,7 @@ typedef int64_t i64;
 #define T_CON 3 // cons, i.e. a pair
 #define T_SYM 4 // symbol
 #define T_EMT 5 // empty
-#define T_NAT 5 // natively implemented function
+#define T_NAT 6 // natively implemented function
 
 #define MEM_LEN 100000
 #define SYM_LEN 1024

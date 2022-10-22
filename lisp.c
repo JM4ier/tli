@@ -18,7 +18,7 @@ i64 *stack_top;
 
 int main(void)
 {
-    i64 dummy;
+    i64 dummy = 0xC0FFEE;
     stack_top = &dummy;
 
     // lisp source to be interpreted
