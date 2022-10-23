@@ -10,45 +10,29 @@ static ptr empty = 0;
 
 static sym_t symbols[SYM_LEN] = {0};
 
-static ptr sym_lambda = 0, sym_def = 0, sym_macro = 0, sym_unquote = 0, sym_quote = 0, sym_quasiquote = 0;
-
-// nodes that are reserved for builtin use
-// should never be GC'ed
+/*
+nodes that are reserved for builtin use
+should never be GC'ed
+*/
 static ptr builtin_use;
 
-int is_unquote(ptr i)
-{
-    return i == sym_unquote;
+#define make(name)              \
+static ptr sym_ ## name = 0;    \
+int is_ ## name(ptr i)          \
+{                               \
+    return i == sym_ ## name;   \
 }
-
-int is_quote(ptr i)
-{
-    return i == sym_quote;
-}
-
-int is_quasiquote(ptr i)
-{
-    return i == sym_quasiquote;
-}
-
-int is_lambda(ptr i)
-{
-    return i == sym_lambda;
-}
-
-int is_macro(ptr i)
-{
-    return i == sym_macro;
-}
+make(quote)
+make(unquote)
+make(quasiquote)
+make(lambda)
+make(macro)
+make(definition)
+#undef make
 
 int is_functionlike(ptr i)
 {
     return i == sym_lambda || i == sym_macro;
-}
-
-int is_definition(ptr i)
-{
-    return i == sym_def;
 }
 
 char *get_symbol_str(ptr s)
@@ -68,7 +52,7 @@ static void init_builtin_symbols(void)
     new_binding(var_name, var_name)
 
     make_sym(sym_lambda, ".\\");
-    make_sym(sym_def, "def");
+    make_sym(sym_definition, "def");
     make_sym(sym_macro, "m\\");
     make_sym(sym_quote, "quote");
     make_sym(sym_unquote, "unquote");
@@ -76,8 +60,19 @@ static void init_builtin_symbols(void)
 #undef make_sym
 }
 
+/*
+initializes the interpreter
+do NOT call twice
+*/
 void init(void)
 {
+    static int initialized = 0;
+    if (initialized) {
+        failwith("already initialized");
+    }
+    initialized = 1;
+
+
     mem[0].kind = T_NIL;
 
     mem[1].kind = T_INT;
@@ -85,13 +80,11 @@ void init(void)
 
     mem[2].kind = T_POO;
 
-    int len = sizeof(mem) / sizeof(mem[0]);
-
     empty = 3;
-    for (int i = 3; i < len; ++i)
+    for (int i = 3; i < MEM_LEN; ++i)
     {
         mem[i].kind = T_EMT;
-        if (i < len - 1)
+        if (i < MEM_LEN - 1)
         {
             mem[i].next_free = i + 1;
         }
@@ -106,7 +99,10 @@ void init(void)
     builtin_use = empty;
 }
 
+/* GC run count */
 static int gen = 1;
+
+/* marks values with a global binding as 'in use' */
 static void mark_globals(void)
 {
     for (ptr s = 0; s < SYM_LEN; s++)
@@ -123,6 +119,11 @@ static void mark_globals(void)
 }
 
 ptr *walker;
+
+/* 
+searches the entire C stack for references to LISP values 
+if it finds any, it marks those values as 'in use'
+*/
 void stack_search_impl(void)
 {
     ptr dummy = 0;
@@ -136,6 +137,11 @@ void stack_search_impl(void)
 }
 
 static void mark_reachable(ptr i);
+
+/*
+marks a value as 'in use' if it isn't already marked as such
+if it is a freshly marked value, it will also mark the child values
+*/
 static void maybe_mark(ptr i)
 {
     if (i < 0) return;
@@ -146,6 +152,7 @@ static void maybe_mark(ptr i)
     }
 }
 
+/* marks descendants of the node as reachable */
 static void mark_reachable(ptr i)
 {
     if (mem[i].gc != gen)
@@ -159,6 +166,7 @@ static void mark_reachable(ptr i)
     }
 }
 
+/* marks all indirectly reachable nodes as used */
 static void mark_all_reachable(void)
 {
     for (ptr i = 0; i < MEM_LEN; i++)
@@ -167,6 +175,9 @@ static void mark_all_reachable(void)
     }
 }
 
+/* 
+marks all unreachable nodes as 'empty' and make them available to be reused
+*/
 static void reconstruct_empty_list(void)
 {
     ptr prev_empty = 0;
@@ -193,13 +204,17 @@ static void reconstruct_empty_list(void)
     empty = prev_empty;
 
     int usage = 100 - 100 * free_memory / MEM_LEN;
-    printf("GC go brrrr... (%d)%%\n", usage);
-    if (usage > MAX_MEMORY_USAGE) {
+    //printf("GC go brrrr... (%d%%)\n", usage);
+    if (usage > MAX_MEMORY_USAGE || usage > 99) {
         printf("Out of memory.\n");
         exit(-1);
     }
 }
 
+/* 
+garbage collector to free up nodes
+does not return if out of memory, instead will stop program
+*/
 void gc(void)
 {
     gen = (gen + 1) & ((~0) >> 1);
@@ -214,10 +229,6 @@ static ptr alloc(void)
     if (kind(empty) != T_EMT)
     {
         gc();
-        if (kind(empty) != T_EMT)
-        {
-            failwith("Out of Memory.");
-        }
     }
 
     ptr next = mem[empty].next_free;
@@ -232,13 +243,18 @@ static ptr alloc(void)
 }
 
 static void check(ptr i) {
-    if (mem[i].gc == ~0 && mem[i].kind == T_EMT)
+    if (i >= 0 && i < MEM_LEN)
     {
-        printf("%ld ", i);
-        println(i);
-        failwith("we freed a node that is still in use :(");
+        if (mem[i].gc == ~0 && mem[i].kind == T_EMT)
+        {
+            printf("%ld ", i);
+            println(i);
+            failwith("we freed a node that is still in use :(");
+        }
     }
 }
+
+// -- constructors for new lisp values -- //
 
 ptr new_int(i64 value)
 {
@@ -343,6 +359,7 @@ ptr new_symbol(char *symbol)
 
 i64 kind(ptr i)
 {
+    assert(i < MEM_LEN);
     if (i < 0)
     {
         return T_NAT;
