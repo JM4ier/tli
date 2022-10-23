@@ -98,6 +98,69 @@
     )
 )
 (defun sort(xs) (sort.tr xs nil))
-(def long-list (iter 1000 inc 1))
-(sort long-list)
-(sort (list 1 2 3 0 (- 2) (- 3) 10000))
+
+(defun find(target init next)
+    (cond
+        ((target init) init)
+        (else (find target (next init) next))
+    )
+)
+
+(defun all(condition collection)
+    (cond
+        ((nil? collection)                  true)
+        ((nil? (condition (hd collection))) nil)
+        (else                               (all condition (tl collection)))
+    )
+)
+
+(defun range(from to)
+    (cond
+        ((= from to) nil)
+        (else (cons from (range (+ 1 from) to)))
+    )
+)
+
+(defun divides?(x y)
+    (= 0 (% y x))
+)
+
+(defun prime?(x)
+    (cond
+        ((< x 2) nil)
+        ((< x 4) true)
+        (else
+            (all (.\ (divisor) (nil? (divides? divisor x))) (range 2 x))
+        )
+    )
+)
+
+(defun filter(pred? list)
+    (cond
+        ((nil? list)        list)
+        ((pred? (hd list))  (cons (hd list) (filter pred? (tl list))))
+        (else               (filter pred? (tl list)))
+    )
+)
+
+(defun map(fun list)
+    (cond
+        ((nil? list) list)
+        (else (cons (fun (hd list)) (map fun (tl list))))
+    )
+)
+
+(defmacro lc(expr for x in list where cond?)
+    `(map (.\ (#x) #expr) (filter (.\ (#x) #cond?) #list))
+)
+
+(range 1 10)
+(divides? 5 10)
+(% 10 5)
+(= 0 (% 10 5))
+(filter prime? (range 1 100))
+(find prime? 1000 inc)
+
+(lc (* 2 x) for x in (range 1 10) where (prime? x))
+
+'(end of program)
