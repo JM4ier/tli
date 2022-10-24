@@ -163,4 +163,13 @@
 
 (lc (* 2 x) for x in (range 1 10) where (prime? x))
 
+(defmacro assert(condition)
+    `(cond
+        (#condition nil)
+        (else (panic '#condition))
+    )
+)
+
+(assert (= 1 0))
+
 '(end of program)

@@ -29,6 +29,7 @@ static int c_eq(ptr a, ptr b)
 
 static ptr eq(ptr i)
 {
+    i = eval_elems(i);
     ptr a = elem(0, i);
     ptr b = elem(1, i);
     return c_eq(a, b) ? new_true() : new_nil();
@@ -260,6 +261,14 @@ static ptr list(ptr i)
     return i;
 }
 
+static ptr panic(ptr i)
+{
+    i = eval_elems(i);
+    printf("error: ");
+    println(get_head(i));
+    failwith("explicit panic");
+}
+
 void register_builtins(void)
 {
     new_builtin(&eq, "=");
@@ -291,4 +300,6 @@ void register_builtins(void)
     new_builtin(&head, "hd");
     new_builtin(&tail, "tl");
     new_builtin(&el, "el");
+
+    new_builtin(&panic, "panic");
 }

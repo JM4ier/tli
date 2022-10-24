@@ -28,7 +28,14 @@ static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
         ptr hd = get_head(code);
         if (is_quote(hd))
         {
-            return code;
+            if (inside_quote)
+            {
+                return quoted(beta_reduce(elem(1, code), formal_arg, arg, inside_quote));
+            }
+            else
+            {
+                return code;
+            }
         }
         if (is_unquote(hd))
         {
