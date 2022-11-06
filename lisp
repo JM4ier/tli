@@ -170,6 +170,85 @@
     )
 )
 
-(assert (= 1 0))
+(defmacro let (var value ctx)
+    `((.\ (#var) #ctx) #value)
+)
+
+(defmacro lets (vars ctx)
+    (cond
+        ((nil? vars) ctx)
+        (else
+            (let more-vars (tl vars)
+            (let var (el 0 (hd vars))
+            (let val (el 1 (hd vars))
+                `(lets #more-vars (let #var #val #ctx))
+            )))
+        )
+    )
+)
+
+(defun init (ls)
+    (cond
+        ((nil? ls) (assert nil))
+        ((nil? (tl ls)) nil)
+        (else (cons (hd ls) (init (tl ls))))
+    )
+)
+
+(defun last (ls)
+    (cond
+        ((nil? ls) (assert nil))
+        ((nil? (tl ls)) (hd ls))
+        (else (last (tl ls)))
+    )
+)
+
+
+(defmacro seq.aux (lines ctx)
+    `(lets #(map (.\ (line) `(_ #line)) lines) #ctx)
+)
+(defmacro seq (lines)
+    `(seq.aux #(init lines) #(last lines))
+)
+
+(lets ( 
+    (x 10)
+    (x 20))
+    x
+)
+
+(defun fst(ls) (el 0 ls))
+(defun snd(ls) (el 1 ls))
+(defun trd(ls) (el 2 ls))
+
+(defun tc-arg(arg)
+    `((nil? #arg) (panic (list '#arg 'instantiated 'with #(snd arg))))
+)
+
+(defmacro typedfun(name args body)
+    `(defun #name #(map snd args)
+        #(concat
+            (list 'cond)
+        (concat
+            (map tc-arg args)
+            (list (list 1 body))
+        ))
+    )
+)
+
+(typedfun plus
+    (
+        (int? x) 
+        (int? y)
+    )
+
+    (+ x y)
+)
+
+(plus 1 2)
+(plus 5 'hehe)
+
+
+(let x 5 (* 2 x))
 
 '(end of program)
