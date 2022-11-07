@@ -150,6 +150,21 @@
     )
 )
 
+(defun mapi.aux(fun list idx)
+    (cond
+        ((nil? list) list)
+        (else
+            (cons
+                (fun idx (hd list))
+                (mapi.aux fun (tl list) (+ idx 1))
+            )
+        )
+    )
+)
+(defun mapi(fun list)
+    (mapi.aux fun list 0)
+)
+
 (defmacro lc(expr for x in list where cond?)
     `(map (.\ (#x) #expr) (filter (.\ (#x) #cond?) #list))
 )
@@ -245,10 +260,44 @@
     (+ x y)
 )
 
+(defun any?(x) 1)
+
+(defmacro defstruct(name fields) 
+    (cons 'progn
+    (cons `(defun #(symcat name '?) (instance) 
+        (cond
+            ((nil? (pair? instance)) nil)
+            ((= (el 0 instance) '#name) 1)
+        )
+    )
+    (cons (list typedfun name fields `(list '#name #(cons 'list (map snd fields))))
+        (mapi
+            (.\ (idx field) 
+                `(defun #(symcat name '. (snd field)) (instance) 
+                    (el #idx (el 1 instance))
+                )
+            )
+        fields)
+))))
+
+(defstruct Point(
+    (int? x)
+    (int? y)
+))
+
+Point.x
+Point.y
+
+Point
+
+(def p (Point 111 222))
+(Point.x p)
+(Point? p)
+
 (plus 1 2)
-(plus 5 'hehe)
 
 
 (let x 5 (* 2 x))
 
+(symcat 'he 'he 'ho)
 '(end of program)

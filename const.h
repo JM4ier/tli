@@ -11,6 +11,7 @@
 
 // number of symbols that can be defined
 #define SYM_LEN 1024
+#define SYM_SIZE 16
 
 // number of builtin functions that can be defined
 #define MAX_BUILTINS 100

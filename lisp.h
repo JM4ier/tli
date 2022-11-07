@@ -49,7 +49,7 @@ typedef struct
 {
     ptr binding;
     ptr node;
-    char name[16];
+    char name[SYM_SIZE];
 } sym_t;
 
 void init(void);

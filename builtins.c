@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "lisp.h"
 #include "assert.h"
 
@@ -269,6 +271,39 @@ static ptr panic(ptr i)
     failwith("explicit panic");
 }
 
+static ptr concat_sym(ptr i)
+{
+    i = eval_elems(i);
+    int len = 0;
+    ptr cursor = i;
+    while (kind(cursor) == T_CON) {
+        len += strlen(get_symbol_str(get_symbol(get_head(cursor))));
+        cursor = get_tail(cursor);
+    }
+    assert(len < SYM_SIZE);
+
+    char buf[SYM_SIZE] = {0};
+
+    cursor = i;
+    while (kind(cursor) == T_CON) {
+        strcat(buf, get_symbol_str(get_symbol(get_head(cursor))));
+        cursor = get_tail(cursor);
+    }
+
+    return new_symbol(buf);
+}
+
+static ptr progn(ptr i)
+{
+    i = eval_elems(i);
+    ptr result = new_nil();
+    while (kind(i) == T_CON) {
+        result = get_head(i);
+        i = get_tail(i);
+    }
+    return result;
+}
+
 void register_builtins(void)
 {
     new_builtin(&eq, "=");
@@ -302,4 +337,6 @@ void register_builtins(void)
     new_builtin(&el, "el");
 
     new_builtin(&panic, "panic");
+    new_builtin(&concat_sym, "symcat");
+    new_builtin(&progn, "progn");
 }
