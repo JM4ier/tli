@@ -300,4 +300,15 @@ Point
 (let x 5 (* 2 x))
 
 (symcat 'he 'he 'ho)
+
+(def input nil)
+
+(typedfun max ((list? values))
+    (fold 0 (.\ (x y) (cond ((< x y) y) (else x))) values)
+)
+
+(max input)
+
+"hello, world!"
+
 '(end of program)

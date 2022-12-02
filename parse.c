@@ -49,6 +49,47 @@ static ptr parse_list(char **input)
     }
 }
 
+static ptr parse_string(char **input, int escaped)
+{
+    assert(**input && "unexpected EOF");
+    char chr = 0;
+    if (**input == '"' && !escaped)
+    {
+        ++*input;
+        return new_nil();
+    }
+    else if (escaped)
+    {
+        switch (**input)
+        {
+        case 'n':
+            chr = '\n';
+            break;
+        case 't':
+            chr = '\t';
+            break;
+        case '"':
+            chr = '"';
+            break;
+        default:
+            assert(false && "unknown escape code");
+        }
+    }
+    else if (**input == '\\')
+    {
+        ++*input;
+        return parse_string(input, 1);
+    }
+    else
+    {
+        chr = **input;
+    }
+    ++*input;
+    ptr val = new_int(chr);
+    ptr rest = parse_string(input, 0);
+    return new_cons(val, rest);
+}
+
 ptr parse(char **input)
 {
     assert(**input && "unexpected EOF");
@@ -94,6 +135,11 @@ ptr parse(char **input)
         ++*input;
         ptr symbol = new_symbol(sym);
         return new_list(2, symbol, parse(input));
+    }
+    else if (**input == '"')
+    {
+        ++*input;
+        return new_list(2, new_symbol("quote"), parse_string(input, 0));
     }
     else
     {
