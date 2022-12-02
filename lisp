@@ -307,8 +307,38 @@ Point
     (fold 0 (.\ (x y) (cond ((< x y) y) (else x))) values)
 )
 
+(defun split.aux (split_val values)
+    (cond
+        ((nil? values) nil)
+        ((= split_val (hd values)) (cons nil (split.aux split_val (tl values))))
+        (else (let split' (split.aux split_val (tl values))
+            (cond
+                ((nil? split') (list (list (hd values))))
+                (else (cons
+                    (cons (hd values) (hd split'))
+                    (tl split')
+                ))
+            )
+        ))
+    )
+)
+
+(typedfun split ((any? split_val) (list? values))
+    (let result (split.aux split_val values)
+        (cond
+            ((nil? result) nil)
+            ((nil? (fst result)) (tl result))
+            (else result)
+        )
+    )
+)
+
 (max input)
 
-"hello, world!"
+(split 5 '(1 2 3 5 4))
+(split 5 '(1 2 3 5 4 5))
+(split 5 '(5 1 2 5 3 5 4 5))
+
+(split (hd ",") "hello, world!")
 
 '(end of program)

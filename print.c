@@ -4,6 +4,25 @@
 #include "lisp.h"
 #include "assert.h"
 
+int is_string(ptr node);
+int is_string(ptr node)
+{
+    if (kind(node) != T_CON)
+        return 0;
+    ptr head = get_head(node);
+    ptr tail = get_tail(node);
+    if (kind(head) != T_INT)
+        return 0;
+    int i = get_int(head);
+    if (i >= 32 && i < 128)
+    {
+        if (kind(tail) == T_NIL)
+            return 1;
+        return is_string(tail);
+    }
+    return 0;
+}
+
 void print(ptr i)
 {
     switch (kind(i))
@@ -34,6 +53,7 @@ void print(ptr i)
     }
     assert(kind(i) == T_CON);
     printf("(");
+    ptr old_i = i;
     while (kind(i) == T_CON)
     {
         ptr head = get_head(i);
@@ -51,6 +71,19 @@ void print(ptr i)
         print(i);
     }
     printf(")");
+    i = old_i;
+    if (is_string(i))
+    {
+        printf("[\"");
+        while (kind(i) == T_CON)
+        {
+            ptr node = get_head(i);
+            char chr = (char)get_int(node);
+            printf("%c", chr);
+            i = get_tail(i);
+        }
+        printf("\"]");
+    }
 }
 
 void println(ptr i)
