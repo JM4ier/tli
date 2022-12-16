@@ -10,8 +10,6 @@
     )
 ))
 
-(if (= 0 0) 1 2)
-
 (def fold (.\ (init fun list)
     (if (pair? list) 
         (fold (fun init (hd list)) fun (tl list))
@@ -65,6 +63,8 @@
 (defmacro defun (name args body)
     `(def #name (.\ #args #body))
 )
+
+(defun /= (x y) (nil? (= x y)))
 
 (defun square(x) (* x x))
 (square 9)
@@ -301,44 +301,274 @@ Point
 
 (symcat 'he 'he 'ho)
 
-(def input nil)
-
 (typedfun max ((list? values))
     (fold 0 (.\ (x y) (cond ((< x y) y) (else x))) values)
 )
 
-(defun split.aux (split_val values)
-    (cond
-        ((nil? values) nil)
-        ((= split_val (hd values)) (cons nil (split.aux split_val (tl values))))
-        (else (let split' (split.aux split_val (tl values))
-            (cond
-                ((nil? split') (list (list (hd values))))
-                (else (cons
-                    (cons (hd values) (hd split'))
-                    (tl split')
-                ))
-            )
-        ))
-    )
+(typedfun min ((list? values))
+    (fold 1000000000 (.\ (x y) (cond ((< x y) x) (else y))) values)
 )
 
-(typedfun split ((any? split_val) (list? values))
-    (let result (split.aux split_val values)
-        (cond
-            ((nil? result) nil)
-            ((nil? (fst result)) (tl result))
-            (else result)
+(defun split.aux(delimiter array)
+    (cond
+        ((nil? array)
+            (list nil nil))
+        (else 
+            (let res (split.aux delimiter (tl array))
+            (cond
+                ((/= delimiter (fst array))
+                    (list (cons (fst array) (fst res)) (snd res)))
+                (else
+                    (list nil (cons (fst res) (snd res))))
+            ))
         )
     )
 )
 
-(max input)
+(defun split (delimiter array)
+    (snd (split.aux delimiter (cons delimiter array)))
+)
 
-(split 5 '(1 2 3 5 4))
-(split 5 '(1 2 3 5 4 5))
-(split 5 '(5 1 2 5 3 5 4 5))
+(typedfun sum((list? x)) (fold 0 + x))
+(defun succ(x) (+ 1 x))
+(typedfun len((list? x)) (fold 0 succ x))
+(defun pow(a b)
+    (cond
+        ((= 0 b) 1)
+        (else (* a (pow a (- b 1))))
+    )
+)
 
-(split (hd ",") "hello, world!")
+(typedfun string->int ((list? str))
+(let digit (- (hd str) (hd "0"))
+(let res (tl str)
+    (cond
+        ((nil? res) digit)
+        (else (+ 
+            (string->int res)
+            (*  digit 
+                (pow 10 (len res))
+            )
+        ))
+    )
+)))
+
+(defun take(n xs)
+    (cond
+        ((= n 0)
+            nil)
+        ((nil? xs)
+            nil)
+        (else
+            (cons (hd xs) (take (- n 1) (tl xs))))
+    )
+)
+
+(defun drop(n xs)
+    (cond
+        ((= n 0)
+            xs)
+        (else
+            (drop (- n 1) (tl xs)))
+    )
+)
+
+(defun contains(x xs)
+    (cond
+        ((nil? xs)      nil)
+        ((= x (hd xs))  true)
+        (else           (contains x (tl xs)))
+    )
+)
+
+(defun mod(x y)
+    (- x (* y (/ x y)))
+)
+
+(defun chunk.aux(size xs)
+    (cond
+        ((nil? xs)
+            (list nil nil))
+        (else
+            (let rest (chunk.aux size (tl xs))
+            (cond
+                ((= size (len (fst rest)))
+                    (list (list (hd xs)) (cons (fst rest) (snd rest))))
+                (else
+                    (list (cons (hd xs) (fst rest)) (snd rest)))
+            ))
+        )
+    )
+)
+
+(typedfun chunk((int? size) (list? xs))
+    (let sol (chunk.aux size xs)
+    (filter id (cons (fst sol) (snd sol))))
+)
+
+(defun flatten(xss)
+    (fold (hd xss) concat (tl xss))
+)
+
+(defun half(xs)
+    (let half_len (/ (len xs) 2)
+    (list
+        (take half_len xs)
+        (drop half_len xs)
+    ))
+)
+
+(defun find_same(yss)
+    (let xs (hd yss)
+    (let ys (tl yss)
+    (fst
+    (filter 
+        (.\ (x)
+            (all (.\ (y) (contains x y)) ys))
+        xs)
+    ))))
+)
+
+(defun and(a b)
+    (cond (a (cond (b true))))
+)
+
+(defun range(begin end)
+    (iter (- end begin) succ begin)
+)
+
+(def in
+    (map (.\ (l) (drop 6 l))
+    (filter id
+    (split 10 
+    input)))
+)
+
+(defun remove_space(string)
+    (filter (.\ (char) (/= (hd " ") char)) string)
+)
+
+(defun parse_valve(line)
+    (let name (take 2 line)
+    (let flow 
+        (string->int
+        (fst
+        (split (hd ";")
+        (snd
+        (split (hd "=")
+        line)))))
+    (let conns
+        (map remove_space
+        (split (hd ",")
+        (drop 24
+        (snd
+        (split (hd ";")
+        line)))))
+    `(#name #flow #conns))))
+)
+(def valves
+    (map parse_valve in)
+)
+
+(def name fst)
+(def flow snd)
+(def conn trd)
+
+(defun maybe_head(list)
+    (cond
+        ((nil? list) nil)
+        (else (hd list))
+    )
+)
+
+(defun or (x y)
+    (cond
+        (x x)
+        (1 y)
+    )
+)
+
+(defun map.new() nil)
+(defun map.get_or(m key default)
+    (or (map.get m key) default)
+)
+(defun map.get_all(m key)
+    (map snd
+    (filter (.\ (entry) (= key (fst entry)))
+    m))
+)
+(defun map.get(map key)
+    (maybe_head (map.get_all map key))
+)
+(defun map.update(m key fun)
+    (map.ins m key (maybe_head (map fun (map.get_all m key))))
+)
+(defun map.update_or(map key default fun)
+    (map.ins map key (fun (map.get_or map key default)))
+)
+(defun map.rem(map key)
+    (filter (.\ (entry) (/= key (fst entry))) map)
+)
+(defun map.ins(map key val)
+    (cons
+        `(#key #val)
+        (map.rem map key)
+    )
+)
+(defun map.keys(m)
+    (map fst m)
+)
+(def infty 10000000)
+
+(def key fst)
+(def val snd)
+
+'valves
+valves
+
+(def names (map name valves))
+'names
+names
+
+(defun repeat(amt list)
+    (cond
+        ((= 0 amt) nil)
+        (else (concat list (repeat (- amt 1) list)))
+    )
+)
+
+(defun make2(x) `(#x #x))
+
+(def edges (flatten (map (.\ (vertex) (map (.\ (neighbor) (list (name vertex) neighbor)) (conn vertex))) valves)))
+(def dist0 (fold (map.new) (map.ins .. .. 0) (map make2 names)))
+
+(defun smoler(a b)
+    (cond
+        ((< a b) a)
+        (else    b)
+    )
+)
+
+dist0
+
+(fold
+    dist0
+    (.\ (dist edge)
+        (fold
+            dist
+            (.\ (d entry) 
+                (let from (fst edge)
+                (let to   (snd (key entry))
+                (let len  (+ 1 (val entry))
+                (let e   `(#from #to)
+                (map.update_or d e infty (smoler .. len))
+            )))))
+            (filter (.\ (entry) (= (snd edge) (fst (key entry)))) dist)
+        )
+    )
+    (repeat 30 edges)
+)
+
+(= edges (repeat  1 edges))
 
 '(end of program)

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <execinfo.h>
 
+int *FOO = NULL;
 void __print_backtrace__(void)
 {
     void *funs[100] = {0};
@@ -18,6 +19,8 @@ void __print_backtrace__(void)
     {
         printf(" %s\n", names[i]);
     }
+
+    ++*FOO;
 
     exit(-1);
 }

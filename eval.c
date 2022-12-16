@@ -3,6 +3,7 @@
 
 static ptr (*builtins[MAX_BUILTINS])(ptr) = {0};
 static int builtins_len = 1;
+static int debug = 0;
 
 void new_builtin(ptr (*fun)(ptr), char *sym)
 {
@@ -94,6 +95,10 @@ static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
 
 ptr eval(ptr i)
 {
+    if (debug) {
+        printf("[DEBUG] ");
+        println(i);
+    }
     switch (kind(i))
     {
     case T_NAT:
@@ -135,7 +140,14 @@ ptr eval(ptr i)
             return builtins[-fun](args);
         }
 
-        if (kind(fun) != T_CON) {
+        if (is_pragma(fun))
+        {
+            debug = 1;
+            return new_nil();
+        }
+
+        if (kind(fun) != T_CON)
+        {
 
             printf("unexpected form of function application: (");
             print(fun);
@@ -145,7 +157,11 @@ ptr eval(ptr i)
 
         ptr fun_head = elem(0, fun);
 
-        assert(is_functionlike(fun_head));
+        if (!is_functionlike(fun_head))
+        {
+            println(fun_head);
+            assert(is_functionlike(fun_head));
+        }
 
         if (is_lambda(fun_head))
         {
@@ -156,15 +172,38 @@ ptr eval(ptr i)
         ptr formal_args = elem(1, fun);
         ptr fun_body = elem(2, fun);
 
+        // TODO Partial app
+        int partial_args_len = 0;
+        ptr partial_args[10];
+
         while (kind(formal_args) != T_NIL)
         {
             ptr f_arg = get_head(formal_args);
             ptr c_arg = get_head(args);
 
-            fun_body = beta_reduce(fun_body, f_arg, c_arg, false);
+            if (is_partial_app(c_arg))
+            {
+                partial_args[partial_args_len++] = f_arg;
+                assert(partial_args_len < 10);
+            }
+            else
+            {
+                fun_body = beta_reduce(fun_body, f_arg, c_arg, false);
+            }
 
             formal_args = get_tail(formal_args);
             args = get_tail(args);
+        }
+
+        // in this case we just return a different lambda
+        if (partial_args_len > 0)
+        {
+            ptr new_formal_args = new_nil();
+            while (partial_args_len)
+            {
+                new_formal_args = new_cons(partial_args[--partial_args_len], new_formal_args);
+            }
+            return new_cons(fun_head, new_cons(new_formal_args, new_cons(fun_body, new_nil())));
         }
 
         if (is_macro(fun_head))

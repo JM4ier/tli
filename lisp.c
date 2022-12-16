@@ -38,7 +38,7 @@ int main(void)
     lisp[fsize] = 0;
 
     init();
-    dump();
+    //dump();
 
     char *lisp_ptr = &lisp[0];
     char **cursor = &lisp_ptr;

@@ -2,7 +2,7 @@
 #define __CONST_H__
 
 // number of "values" that can be stored in the interpreter
-#define MEM_LEN 100000
+#define MEM_LEN 10000000
 
 // maximal usage in percent:
 // this is to avoid repeatedly running the garbage collector to free 

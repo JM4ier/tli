@@ -269,6 +269,7 @@ static ptr panic(ptr i)
     printf("error: ");
     println(get_head(i));
     failwith("explicit panic");
+    return 0;
 }
 
 static ptr concat_sym(ptr i)
@@ -276,7 +277,8 @@ static ptr concat_sym(ptr i)
     i = eval_elems(i);
     int len = 0;
     ptr cursor = i;
-    while (kind(cursor) == T_CON) {
+    while (kind(cursor) == T_CON)
+    {
         len += strlen(get_symbol_str(get_symbol(get_head(cursor))));
         cursor = get_tail(cursor);
     }
@@ -285,7 +287,8 @@ static ptr concat_sym(ptr i)
     char buf[SYM_SIZE] = {0};
 
     cursor = i;
-    while (kind(cursor) == T_CON) {
+    while (kind(cursor) == T_CON)
+    {
         strcat(buf, get_symbol_str(get_symbol(get_head(cursor))));
         cursor = get_tail(cursor);
     }
@@ -297,11 +300,43 @@ static ptr progn(ptr i)
 {
     i = eval_elems(i);
     ptr result = new_nil();
-    while (kind(i) == T_CON) {
+    while (kind(i) == T_CON)
+    {
         result = get_head(i);
         i = get_tail(i);
     }
     return result;
+}
+
+static ptr read(ptr i)
+{
+    i = eval_elems(i);
+    i = get_head(i);
+
+    ptr cursor = i;
+    i64 size = 0;
+    while (kind(cursor) == T_CON)
+    {
+        size++;
+        cursor = get_tail(cursor);
+    }
+
+    printf("%d\n\n", size);
+
+    char buf[size+1];
+    cursor = i;
+    i64 k = 0;
+
+    while (kind(cursor) == T_CON)
+    {
+        buf[k++] = (char) get_int(get_head(cursor));
+        cursor = get_tail(cursor);
+    }
+    buf[k] = 0;
+
+    char *buf_ptr = &(buf[0]);
+
+    return parse(&buf_ptr);
 }
 
 void register_builtins(void)
@@ -325,6 +360,7 @@ void register_builtins(void)
     new_builtin(&is_pair, "pair?");
     new_builtin(&is_list, "list?");
 
+    new_builtin(&read, "read");
     new_builtin(&eval_quote, "quote");
     new_builtin(&eval_quasiquote, "quasiquote");
 

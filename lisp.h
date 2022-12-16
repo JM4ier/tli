@@ -97,6 +97,8 @@ int is_lambda(ptr i);
 int is_macro(ptr i);
 int is_functionlike(ptr i);
 int is_definition(ptr i);
+int is_partial_app(ptr i);
+int is_pragma(ptr i);
 
 void print(ptr i);
 void println(ptr i);

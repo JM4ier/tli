@@ -17,17 +17,19 @@ should never be GC'ed
 static ptr builtin_use;
 
 #define make(name)              \
-static ptr sym_ ## name = 0;    \
-int is_ ## name(ptr i)          \
-{                               \
-    return i == sym_ ## name;   \
-}
-make(quote)
-make(unquote)
-make(quasiquote)
-make(lambda)
-make(macro)
-make(definition)
+    static ptr sym_##name = 0;  \
+    int is_##name(ptr i)        \
+    {                           \
+        return i == sym_##name; \
+    }
+make(quote);
+make(unquote);
+make(quasiquote);
+make(lambda);
+make(macro);
+make(definition);
+make(partial_app);
+make(pragma);
 #undef make
 
 int is_functionlike(ptr i)
@@ -57,7 +59,38 @@ static void init_builtin_symbols(void)
     make_sym(sym_quote, "quote");
     make_sym(sym_unquote, "unquote");
     make_sym(sym_quasiquote, "quasiquote");
+    make_sym(sym_partial_app, "..");
+    make_sym(sym_pragma, "pragma");
 #undef make_sym
+}
+
+/*
+reads the input file
+*/
+void read_input(void)
+{
+    FILE *f = fopen("input.txt", "rb");
+    assert(f);
+
+    fseek(f, 0, SEEK_END);
+    size_t fsize = (size_t)ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    char *buf = malloc(fsize + 1);
+    assert(buf);
+
+    fread(buf, fsize, 1, f);
+    fclose(f);
+    buf[fsize] = 0;
+
+    ptr input = new_nil();
+    for (char *cursor = buf + fsize - 1; cursor >= buf; cursor--)
+    {
+        input = new_cons(new_int(*cursor), input);
+    }
+    new_binding(new_symbol("input"), input);
+
+    free(buf);
 }
 
 /*
@@ -67,11 +100,11 @@ do NOT call twice
 void init(void)
 {
     static int initialized = 0;
-    if (initialized) {
+    if (initialized)
+    {
         failwith("already initialized");
     }
     initialized = 1;
-
 
     mem[0].kind = T_NIL;
 
@@ -97,6 +130,7 @@ void init(void)
     init_builtin_symbols();
     register_builtins();
     builtin_use = empty;
+    read_input();
 }
 
 /* GC run count */
@@ -120,16 +154,17 @@ static void mark_globals(void)
 
 ptr *walker;
 
-/* 
-searches the entire C stack for references to LISP values 
+/*
+searches the entire C stack for references to LISP values
 if it finds any, it marks those values as 'in use'
 */
 void stack_search_impl(void)
 {
     ptr dummy = 0;
     walker = &dummy;
-    while (++walker != stack_top) {
-        if (*walker < MEM_LEN && *walker > 0)
+    while (++walker != stack_top)
+    {
+        if (*walker<MEM_LEN && * walker> 0)
         {
             mem[*walker].gc = gen;
         }
@@ -144,7 +179,8 @@ if it is a freshly marked value, it will also mark the child values
 */
 static void maybe_mark(ptr i)
 {
-    if (i < 0) return;
+    if (i < 0)
+        return;
     if (mem[i].gc != gen)
     {
         mem[i].gc = gen;
@@ -175,7 +211,7 @@ static void mark_all_reachable(void)
     }
 }
 
-/* 
+/*
 marks all unreachable nodes as 'empty' and make them available to be reused
 */
 static void reconstruct_empty_list(void)
@@ -204,14 +240,15 @@ static void reconstruct_empty_list(void)
     empty = prev_empty;
 
     int usage = 100 - 100 * free_memory / MEM_LEN;
-    //printf("GC go brrrr... (%d%%)\n", usage);
-    if (usage > MAX_MEMORY_USAGE || usage > 99) {
+    // printf("GC go brrrr... (%d%%)\n", usage);
+    if (usage > MAX_MEMORY_USAGE || usage > 99)
+    {
         printf("Out of memory.\n");
         exit(-1);
     }
 }
 
-/* 
+/*
 garbage collector to free up nodes
 does not return if out of memory, instead will stop program
 */
@@ -242,7 +279,8 @@ static ptr alloc(void)
     return new;
 }
 
-static void check(ptr i) {
+static void check(ptr i)
+{
     if (i >= 0 && i < MEM_LEN)
     {
         if (mem[i].gc == ~0 && mem[i].kind == T_EMT)
