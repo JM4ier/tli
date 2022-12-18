@@ -31,7 +31,6 @@ static int c_eq(ptr a, ptr b)
 
 static ptr eq(ptr i)
 {
-    i = eval_elems(i);
     ptr a = elem(0, i);
     ptr b = elem(1, i);
     return c_eq(a, b) ? new_true() : new_nil();
@@ -40,7 +39,6 @@ static ptr eq(ptr i)
 #define _ORD_(name, cmp)                                       \
     static ptr name(ptr a)                                     \
     {                                                          \
-        a = eval_elems(a);                                     \
         if (kind(a) == T_NIL)                                  \
         {                                                      \
             return new_true();                                 \
@@ -71,7 +69,6 @@ _ORD_(gte, >=)
 #define _ARITH_(name, op, init)                \
     static ptr name(ptr a)                     \
     {                                          \
-        a = eval_elems(a);                     \
         i64 val = init;                        \
         while (kind(a) == T_CON)               \
         {                                      \
@@ -85,7 +82,6 @@ _ARITH_(prod, *, 1)
 
 static ptr minus(ptr i)
 {
-    i = eval_elems(i);
     ptr arg0 = get_head(i);
     if (kind(get_tail(i)) != T_NIL)
     {
@@ -100,20 +96,17 @@ static ptr minus(ptr i)
 
 static ptr div(ptr i)
 {
-    i = eval_elems(i);
     return new_int(get_int(elem(0, i)) / get_int(elem(1, i)));
 }
 
 static ptr mod(ptr i)
 {
-    i = eval_elems(i);
     return new_int(get_int(elem(0, i)) % get_int(elem(1, i)));
 }
 
 #define _CMP_(name, _kind)             \
     static ptr name(ptr i)             \
     {                                  \
-        i = eval_elems(i);             \
         i = get_head(i);               \
         if (i < 0 || kind(i) != _kind) \
         {                              \
@@ -131,7 +124,6 @@ _CMP_(is_pair, T_CON)
 
 static ptr is_list(ptr i)
 {
-    i = eval_elems(i);
     i = get_head(i);
     while (i >= 0 && kind(i) == T_CON)
     {
@@ -233,7 +225,6 @@ static ptr eval_cond(ptr i)
 
 static ptr cons(ptr i)
 {
-    i = eval_elems(i);
     ptr hd = elem(0, i);
     ptr tl = elem(1, i);
     return new_cons(hd, tl);
@@ -241,17 +232,16 @@ static ptr cons(ptr i)
 
 static ptr head(ptr i)
 {
-    return get_head(get_head(eval_elems(i)));
+    return get_head(get_head(i));
 }
 
 static ptr tail(ptr i)
 {
-    return get_tail(get_head(eval_elems(i)));
+    return get_tail(get_head(i));
 }
 
 static ptr el(ptr i)
 {
-    i = eval_elems(i);
     ptr idx = elem(0, i);
     ptr list = elem(1, i);
     return elem(get_int(idx), list);
@@ -259,13 +249,11 @@ static ptr el(ptr i)
 
 static ptr list(ptr i)
 {
-    i = eval_elems(i);
     return i;
 }
 
 static ptr panic(ptr i)
 {
-    i = eval_elems(i);
     printf("error: ");
     println(get_head(i));
     failwith("explicit panic");
@@ -274,7 +262,6 @@ static ptr panic(ptr i)
 
 static ptr concat_sym(ptr i)
 {
-    i = eval_elems(i);
     int len = 0;
     ptr cursor = i;
     while (kind(cursor) == T_CON)
@@ -298,7 +285,6 @@ static ptr concat_sym(ptr i)
 
 static ptr progn(ptr i)
 {
-    i = eval_elems(i);
     ptr result = new_nil();
     while (kind(i) == T_CON)
     {
@@ -310,7 +296,6 @@ static ptr progn(ptr i)
 
 static ptr read(ptr i)
 {
-    i = eval_elems(i);
     i = get_head(i);
 
     ptr cursor = i;
@@ -321,7 +306,7 @@ static ptr read(ptr i)
         cursor = get_tail(cursor);
     }
 
-    printf("%d\n\n", size);
+    printf("%ld\n\n", size);
 
     char buf[size+1];
     cursor = i;
@@ -341,38 +326,45 @@ static ptr read(ptr i)
 
 void register_builtins(void)
 {
-    new_builtin(&eq, "=");
 
-    new_builtin(&lt, "<");
-    new_builtin(&gt, ">");
-    new_builtin(&lte, "<=");
-    new_builtin(&gte, ">=");
+    #define new_builtin_mc(a, b) new_builtin(a, b, T_MAC)
+    #define new_builtin_fn(a, b) new_builtin(a, b, T_FUN)
 
-    new_builtin(&sum, "+");
-    new_builtin(&prod, "*");
-    new_builtin(&minus, "-");
-    new_builtin(&div, "/");
-    new_builtin(&mod, "%");
+    new_builtin_mc(&eval_cond, "cond");
+    new_builtin_mc(&eval_quasiquote, "quasiquote");
+    new_builtin_mc(&eval_quote, "quote");
 
-    new_builtin(&is_nil, "nil?");
-    new_builtin(&is_int, "int?");
-    new_builtin(&is_sym, "sym?");
-    new_builtin(&is_pair, "pair?");
-    new_builtin(&is_list, "list?");
+    new_builtin_fn(&eq, "=");
 
-    new_builtin(&read, "read");
-    new_builtin(&eval_quote, "quote");
-    new_builtin(&eval_quasiquote, "quasiquote");
+    new_builtin_fn(&lt, "<");
+    new_builtin_fn(&gt, ">");
+    new_builtin_fn(&lte, "<=");
+    new_builtin_fn(&gte, ">=");
 
-    new_builtin(&eval_cond, "cond");
+    new_builtin_fn(&sum, "+");
+    new_builtin_fn(&prod, "*");
+    new_builtin_fn(&minus, "-");
+    new_builtin_fn(&div, "/");
+    new_builtin_fn(&mod, "%");
 
-    new_builtin(&cons, "cons");
-    new_builtin(&list, "list");
-    new_builtin(&head, "hd");
-    new_builtin(&tail, "tl");
-    new_builtin(&el, "el");
+    new_builtin_fn(&is_nil, "nil?");
+    new_builtin_fn(&is_int, "int?");
+    new_builtin_fn(&is_sym, "sym?");
+    new_builtin_fn(&is_pair, "pair?");
+    new_builtin_fn(&is_list, "list?");
 
-    new_builtin(&panic, "panic");
-    new_builtin(&concat_sym, "symcat");
-    new_builtin(&progn, "progn");
+    new_builtin_fn(&read, "read");
+
+    new_builtin_fn(&cons, "cons");
+    new_builtin_fn(&list, "list");
+    new_builtin_fn(&head, "hd");
+    new_builtin_fn(&tail, "tl");
+    new_builtin_fn(&el, "el");
+
+    new_builtin_fn(&panic, "panic");
+    new_builtin_fn(&concat_sym, "symcat");
+    new_builtin_fn(&progn, "progn");
+
+    #undef new_builtin_mc
+    #undef new_builtin_fn
 }

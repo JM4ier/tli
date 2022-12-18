@@ -1,18 +1,7 @@
 #include "lisp.h"
 #include "assert.h"
 
-static ptr (*builtins[MAX_BUILTINS])(ptr) = {0};
-static int builtins_len = 1;
 static int debug = 0;
-
-void new_builtin(ptr (*fun)(ptr), char *sym)
-{
-    assert(builtins_len < MAX_BUILTINS);
-    int idx = -builtins_len;
-    builtins[builtins_len++] = fun;
-    ptr s = new_symbol(sym);
-    new_binding(s, idx);
-}
 
 static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
 {
@@ -93,15 +82,18 @@ static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
     }
 }
 
+ptr eval_elems(ptr is);
 ptr eval(ptr i)
 {
-    if (debug) {
+    if (debug)
+    {
         printf("[DEBUG] ");
         println(i);
     }
     switch (kind(i))
     {
-    case T_NAT:
+    case T_FUN:
+    case T_MAC:
     case T_NIL:
     case T_INT:
         return i;
@@ -112,7 +104,7 @@ ptr eval(ptr i)
         if (kind(bind) == T_POO)
         {
             printf("`%s` is unbound.\n", get_symbol_str(sym));
-            failwith("");
+            assert(false);
         }
         return bind;
     }
@@ -134,10 +126,14 @@ ptr eval(ptr i)
         ptr fun = eval(head);
         ptr args = get_tail(i);
 
-        if (kind(fun) == T_NAT)
+        if (kind(fun) == T_FUN)
         {
-            // builtins behave like macros by default, evaluation must be done by the function itself
-            return builtins[-fun](args);
+            return get_fn_ptr(fun)(eval_elems(args));
+        }
+
+        if (kind(fun) == T_MAC)
+        {
+            return get_fn_ptr(fun)(args);
         }
 
         if (is_pragma(fun))

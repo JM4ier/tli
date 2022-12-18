@@ -27,8 +27,11 @@ void print(ptr i)
 {
     switch (kind(i))
     {
-    case T_NAT:
-        printf("<builtin>");
+    case T_FUN:
+        printf("<builtin fun>");
+        return;
+    case T_MAC:
+        printf("<builtin macro>");
         return;
     case T_INT:
         printf("%ld", get_int(i));

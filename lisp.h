@@ -16,7 +16,8 @@ typedef int64_t i64;
 #define T_CON 3 // cons, i.e. a pair
 #define T_SYM 4 // symbol
 #define T_EMT 5 // empty
-#define T_NAT 6 // natively implemented function
+#define T_FUN 6 // builtin function
+#define T_MAC 7 // builtin macro
 
 typedef struct
 {
@@ -32,8 +33,12 @@ typedef struct
             // tail of cons
             ptr tail;
         };
+
         // pointer to the symbol
         ptr symbol;
+
+        // if builtin function or macro, function pointer
+        ptr (*builtin)(ptr);
 
         // if not in use, point to next free node
         ptr next_free;
@@ -54,7 +59,6 @@ typedef struct
 
 void init(void);
 
-void new_builtin(ptr (*fun)(ptr), char *sym);
 void new_binding(ptr symbol, ptr expression);
 void register_builtins(void);
 
@@ -65,6 +69,7 @@ ptr new_nil(void);
 ptr new_list(int len, ...);
 ptr new_true(void);
 ptr new_symbol(char *symbol);
+ptr new_builtin(ptr (*fun)(ptr), char *sym, int kind);
 ptr quoted(ptr i);
 
 // garbage collection
@@ -82,13 +87,11 @@ ptr get_tail(ptr i);
 ptr elem(int idx, ptr node);
 char *get_symbol_str(ptr s);
 ptr get_symbol_binding(ptr s);
+ptr (*get_fn_ptr(ptr i))(ptr);
 
 // eval an expression
 // might have side effects
 ptr eval(ptr i);
-
-// eval list, element-wise
-ptr eval_elems(ptr is);
 
 int is_quote(ptr i);
 int is_quasiquote(ptr i);

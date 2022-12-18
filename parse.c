@@ -141,6 +141,15 @@ ptr parse(char **input)
         ++*input;
         return new_list(2, new_symbol("quote"), parse_string(input, 0));
     }
+    else if (**input == ';')
+    {
+        // begin comment
+        while (**input != '\n')
+        {
+            ++*input;
+        }
+        return parse(input);
+    }
     else
     {
         // symbol

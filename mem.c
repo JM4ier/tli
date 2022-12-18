@@ -22,15 +22,17 @@ static ptr builtin_use;
     {                           \
         return i == sym_##name; \
     }
-make(quote);
-make(unquote);
-make(quasiquote);
-make(lambda);
-make(macro);
-make(definition);
-make(partial_app);
-make(pragma);
+make(quote)
+make(unquote)
+make(quasiquote)
+make(lambda)
+make(macro)
+make(definition)
+make(partial_app)
+make(pragma)
 #undef make
+
+#define UNBOUND 2
 
 int is_functionlike(ptr i)
 {
@@ -93,25 +95,30 @@ void read_input(void)
     free(buf);
 }
 
+#define MEM_UNINIT 0
+#define MEM_INITIALIZING 1
+#define MEM_INITIALIZED 2
+static int initialized = MEM_UNINIT;
+
 /*
 initializes the interpreter
 do NOT call twice
 */
 void init(void)
 {
-    static int initialized = 0;
     if (initialized)
     {
-        failwith("already initialized");
+        failwith("already initialized or in the process of doing so");
     }
-    initialized = 1;
+    initialized = MEM_INITIALIZING;
 
     mem[0].kind = T_NIL;
 
     mem[1].kind = T_INT;
     mem[1].value = 1;
 
-    mem[2].kind = T_POO;
+    assert(UNBOUND == 2);
+    mem[UNBOUND].kind = T_POO;
 
     empty = 3;
     for (int i = 3; i < MEM_LEN; ++i)
@@ -131,6 +138,7 @@ void init(void)
     register_builtins();
     builtin_use = empty;
     read_input();
+    initialized = MEM_INITIALIZED;
 }
 
 /* GC run count */
@@ -144,10 +152,7 @@ static void mark_globals(void)
         if (symbols[s].name[0] != 0)
         {
             int binding = symbols[s].binding;
-            if (kind(binding) != T_NAT)
-            {
-                mem[binding].gc = gen;
-            }
+            mem[binding].gc = gen;
         }
     }
 }
@@ -160,8 +165,8 @@ if it finds any, it marks those values as 'in use'
 */
 void stack_search_impl(void)
 {
-    ptr dummy = 0;
-    walker = &dummy;
+    ptr stack_bottom = 0;
+    walker = &stack_bottom;
     while (++walker != stack_top)
     {
         if (*walker<MEM_LEN && * walker> 0)
@@ -358,6 +363,17 @@ ptr quoted(ptr i)
     }
 }
 
+ptr new_builtin(ptr (*fun)(ptr), char *sym, int kind)
+{
+    ptr i = alloc();
+    assert(kind == T_FUN || kind == T_MAC);
+    mem[i].kind = kind;
+    mem[i].builtin = fun;
+    ptr s = new_symbol(sym);
+    new_binding(s, i);
+    return i;
+}
+
 ptr new_symbol(char *symbol)
 {
     if (!strcmp(symbol, "nil") || !strcmp(symbol, "NIL"))
@@ -382,7 +398,7 @@ ptr new_symbol(char *symbol)
 
             strcpy(symbols[k].name, symbol);
 
-            symbols[k].binding = 2; // point to garbage
+            symbols[k].binding = UNBOUND; // point to garbage
             symbols[k].node = i;
             return i;
         }
@@ -397,15 +413,9 @@ ptr new_symbol(char *symbol)
 
 i64 kind(ptr i)
 {
+    assert(i >= 0);
     assert(i < MEM_LEN);
-    if (i < 0)
-    {
-        return T_NAT;
-    }
-    else
-    {
-        return mem[i].kind;
-    }
+    return mem[i].kind;
 }
 
 i64 get_int(ptr i)
@@ -413,6 +423,12 @@ i64 get_int(ptr i)
     check(i);
     assert(mem[i].kind == T_INT);
     return mem[i].value;
+}
+
+ptr (*get_fn_ptr(ptr i))(ptr)
+{
+    assert(kind(i) == T_FUN || kind(i) == T_MAC);
+    return mem[i].builtin;
 }
 
 ptr get_head(ptr i)
@@ -458,5 +474,10 @@ ptr get_nil(ptr i)
 
 void new_binding(ptr symbol, ptr expression)
 {
-    symbols[get_symbol(symbol)].binding = expression;
+    sym_t *sym = &symbols[get_symbol(symbol)];
+    if (sym->binding != UNBOUND) {
+        printf("Definitions cannot be shadowed.\nOffending symbol: %s.\n", &sym->name[0]);
+        assert(initialized == MEM_INITIALIZING);
+    }
+    sym->binding = expression;
 }

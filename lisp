@@ -24,6 +24,20 @@
     )
 ))
 
+(def defmacro (m\ (name args body)
+    `(def #name (m\ #args #body))
+))
+
+(defmacro defun (name args body)
+    `(def #name (.\ #args #body))
+)
+
+(defun flatten(xss)
+    (cond
+        (xss (fold (hd xss) concat (tl xss)))
+    )
+)
+
 (def rev.aux (.\ (items revd)
     (cond
         ((nil? items) revd)
@@ -55,14 +69,6 @@
 
 (def partial-add (.\ (a) (.\ (b) (+ a b))))
 (partial-add 4)
-
-(def defmacro (m\ (name args body)
-    `(def #name (m\ #args #body))
-))
-
-(defmacro defun (name args body)
-    `(def #name (.\ #args #body))
-)
 
 (defun /= (x y) (nil? (= x y)))
 
@@ -263,31 +269,55 @@
 (defun any?(x) 1)
 
 (defmacro defstruct(name fields) 
-    (cons 'progn
-    (cons `(defun #(symcat name '?) (instance) 
+    (flatten (list '(progn)
+
+    ;; 'type checking' - checks if it is a struct instance of this type
+    `((defun #(symcat name '?) (instance) 
         (cond
-            ((nil? (pair? instance)) nil)
-            ((= (el 0 instance) '#name) 1)
+            ((nil? (pair? instance)) false)
+            (else (= (el 0 instance) '#name))
         )
-    )
-    (cons (list typedfun name fields `(list '#name #(cons 'list (map snd fields))))
-        (mapi
-            (.\ (idx field) 
-                `(defun #(symcat name '. (snd field)) (instance) 
-                    (el #idx (el 1 instance))
-                )
+    ))
+
+    ;; constructor of the struct
+    `((typedfun #name #fields 
+        #`(list '#name #(cons 'list (map snd fields)))
+    ))
+
+    ;; accessors of the struct
+    (mapi
+        (.\ (idx field) 
+            `(defun #(symcat name '. (snd field)) (instance) 
+                (el #idx (el 1 instance))
             )
-        fields)
-))))
+        )
+    fields)
+    
+    ;; editing fields of the struct
+    (mapi
+        (.\ (idx field) 
+            `(defun #(symcat name '. (snd field) '!) (instance new_val) 
+                #(cons name (mapi (.\ (val_idx field2)
+                    (cond
+                        ((= idx val_idx) 'new_val)
+                        (else `(#(symcat name '. (snd field2)) instance))
+                    )
+                ) fields))
+            )
+        )
+    fields)
+)))
 
 (defstruct Point(
     (int? x)
     (int? y)
 ))
 
+'Point
 Point.x
 Point.y
-
+Point.x!
+Point.y!
 Point
 
 (def p (Point 111 222))
@@ -406,10 +436,6 @@ Point
     (filter id (cons (fst sol) (snd sol))))
 )
 
-(defun flatten(xss)
-    (fold (hd xss) concat (tl xss))
-)
-
 (defun half(xs)
     (let half_len (/ (len xs) 2)
     (list
@@ -431,10 +457,6 @@ Point
 
 (defun and(a b)
     (cond (a (cond (b true))))
-)
-
-(defun range(begin end)
-    (iter (- end begin) succ begin)
 )
 
 (def in
@@ -548,27 +570,5 @@ names
         (else    b)
     )
 )
-
-dist0
-
-(fold
-    dist0
-    (.\ (dist edge)
-        (fold
-            dist
-            (.\ (d entry) 
-                (let from (fst edge)
-                (let to   (snd (key entry))
-                (let len  (+ 1 (val entry))
-                (let e   `(#from #to)
-                (map.update_or d e infty (smoler .. len))
-            )))))
-            (filter (.\ (entry) (= (snd edge) (fst (key entry)))) dist)
-        )
-    )
-    (repeat 30 edges)
-)
-
-(= edges (repeat  1 edges))
 
 '(end of program)
