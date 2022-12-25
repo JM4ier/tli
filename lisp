@@ -1,33 +1,7 @@
 (def true 1)
 (def else true)
-
 (def not nil?)
-
 (def ls list)
-
-(def id (.\ (x) x))
-
-(def if (m\ (expr then else)
-    `(cond
-        (#expr #then)
-        (true  #else)
-    )
-))
-
-
-(def fold (.\ (init fun list)
-    (if (pair? list) 
-        (fold (fun init (hd list)) fun (tl list))
-        init
-    )
-))
-
-(def concat (.\ (xs ys)
-    (cond
-        ((nil? xs) ys)
-        (true (cons (hd xs) (concat (tl xs) ys)))
-    )
-))
 
 (def defmacro (m\ (name args body)
     `(def #name (m\ #args #body))
@@ -37,6 +11,15 @@
     `(def #name (.\ #args #body))
 )
 
+(defun id(x) x)
+
+(defmacro if (condition? then else)
+   `(cond
+        (#condition? #then)
+        (else #else)
+    )
+)
+
 (defmacro assert(condition)
     `(cond
         (#condition #condition)
@@ -44,28 +27,41 @@
     )
 )
 
-(assert (= '(1 2 3 4 5 6) (concat '(1 2 3) '(4 5 6))))
-
-
-(defun flatten(xss)
+(defun fold(init fun list)
     (cond
-        (xss (fold (hd xss) concat (tl xss)))
+        ((pair? list)
+            (fold (fun init (hd list)) fun (tl list))
+        )
+        (else
+            init)
     )
 )
+
+(assert (= 10 
+    (fold 0 (.\ (x y) (+ x y)) '(1 2 3 4))
+))
+
+(defun flip(fun)
+    (.\ (x y) (fun y x))
+)
+
+(def rev (fold nil (flip cons) ..))
+
+(assert (= '(4 3 2 1)
+    (rev '(1 2 3 4))
+))
+
+(defun concat(xs ys)
+    (fold ys (flip cons) (rev xs))
+)
+
+(assert (= '(1 2 3 4 5 6) (concat '(1 2 3) '(4 5 6))))
+
+(def flatten (fold nil concat ..))
 
 (assert (= 
     '(1 2 3 4)
     (flatten '((1 2) (3) nil (4) nil nil))
-))
-
-(def rev.aux (.\ (items revd)
-    (cond
-        ((nil? items) revd)
-        (true (rev.aux (tl items) (cons (hd items) revd)))
-    )
-))
-(def rev (.\ (ls)
-    (rev.aux ls nil)
 ))
 
 (assert (= nil (rev nil)))
@@ -82,31 +78,9 @@
     (rev (iter.aux reps fun nil val))
 ))
 
-
-(fold 0 + '(1 2 3 4 5))
-(rev (concat '(1 2 3) '(a b c)))
-
-
-(def inc (.\ (x) (+ 1 x)))
-(rev (iter 30 inc 1))
-
-
-(def partial-add (.\ (a) (.\ (b) (+ a b))))
-(partial-add 4)
+(defun inc(x) (+ 1 x))
 
 (defun /= (x y) (nil? (= x y)))
-
-(defun square(x) (* x x))
-(square 9)
-
-(defun fib.aux(f1 f2 n)
-    (if (= n 0)
-        f1
-        (fib.aux f2 (+ f1 f2) (- n 1))
-    )
-)
-(defun fib(n) (fib.aux 0 1 n))
-(fib 20)
 
 (defun sort.join(bwd fwd)
     (cond
@@ -136,12 +110,21 @@
     )
 )
 
-(defun all(condition collection)
+(defun and(a b)
+    (cond (a (cond (b true))))
+)
+(defun all(pred? list)
+    (fold true and (map pred? list))
+)
+
+(defun or(a b)
     (cond
-        ((nil? collection)                  true)
-        ((nil? (condition (hd collection))) nil)
-        (else                               (all condition (tl collection)))
+        (a true)
+        (b true)
     )
+)
+(defun any(pred? list)
+    (fold nil or (map pred? list))
 )
 
 (defun range(from to)
@@ -481,10 +464,6 @@ Point
     ))))
 )
 
-(defun and(a b)
-    (cond (a (cond (b true))))
-)
-
 (defun remove_space(string)
     (filter (.\ (char) (/= (hd " ") char)) string)
 )
@@ -493,13 +472,6 @@ Point
     (cond
         ((nil? list) nil)
         (else (hd list))
-    )
-)
-
-(defun or (x y)
-    (cond
-        (x x)
-        (1 y)
     )
 )
 
