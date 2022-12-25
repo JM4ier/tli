@@ -1,6 +1,10 @@
 (def true 1)
 (def else true)
 
+(def not nil?)
+
+(def ls list)
+
 (def id (.\ (x) x))
 
 (def if (m\ (expr then else)
@@ -9,6 +13,7 @@
         (true  #else)
     )
 ))
+
 
 (def fold (.\ (init fun list)
     (if (pair? list) 
@@ -32,11 +37,26 @@
     `(def #name (.\ #args #body))
 )
 
+(defmacro assert(condition)
+    `(cond
+        (#condition #condition)
+        (else (panic '#condition))
+    )
+)
+
+(assert (= '(1 2 3 4 5 6) (concat '(1 2 3) '(4 5 6))))
+
+
 (defun flatten(xss)
     (cond
         (xss (fold (hd xss) concat (tl xss)))
     )
 )
+
+(assert (= 
+    '(1 2 3 4)
+    (flatten '((1 2) (3) nil (4) nil nil))
+))
 
 (def rev.aux (.\ (items revd)
     (cond
@@ -47,6 +67,10 @@
 (def rev (.\ (ls)
     (rev.aux ls nil)
 ))
+
+(assert (= nil (rev nil)))
+(assert (= '(1) (rev '(1))))
+(assert (= '(2 1) (rev '(1 2))))
 
 (def iter.aux (.\ (reps fun acc val)
     (cond
@@ -184,10 +208,10 @@
 
 (lc (* 2 x) for x in (range 1 10) where (prime? x))
 
-(defmacro assert(condition)
+(defmacro assert_msg(condition msg)
     `(cond
         (#condition nil)
-        (else (panic '#condition))
+        (else (panic '(failed: #condition because #msg)))
     )
 )
 
@@ -274,7 +298,7 @@
     ;; 'type checking' - checks if it is a struct instance of this type
     `((defun #(symcat name '?) (instance) 
         (cond
-            ((nil? (pair? instance)) false)
+            ((nil? (pair? instance)) nil)
             (else (= (el 0 instance) '#name))
         )
     ))
@@ -406,6 +430,8 @@ Point
 (defun contains(x xs)
     (cond
         ((nil? xs)      nil)
+        ((sym? xs)      (panic '(contains expects a list as 2nd arg)))
+        ((int? xs)      (panic '(contains expects a list as 2nd arg)))
         ((= x (hd xs))  true)
         (else           (contains x (tl xs)))
     )
@@ -459,42 +485,9 @@ Point
     (cond (a (cond (b true))))
 )
 
-(def in
-    (map (.\ (l) (drop 6 l))
-    (filter id
-    (split 10 
-    input)))
-)
-
 (defun remove_space(string)
     (filter (.\ (char) (/= (hd " ") char)) string)
 )
-
-(defun parse_valve(line)
-    (let name (take 2 line)
-    (let flow 
-        (string->int
-        (fst
-        (split (hd ";")
-        (snd
-        (split (hd "=")
-        line)))))
-    (let conns
-        (map remove_space
-        (split (hd ",")
-        (drop 24
-        (snd
-        (split (hd ";")
-        line)))))
-    `(#name #flow #conns))))
-)
-(def valves
-    (map parse_valve in)
-)
-
-(def name fst)
-(def flow snd)
-(def conn trd)
 
 (defun maybe_head(list)
     (cond
@@ -510,48 +503,6 @@ Point
     )
 )
 
-(defun map.new() nil)
-(defun map.get_or(m key default)
-    (or (map.get m key) default)
-)
-(defun map.get_all(m key)
-    (map snd
-    (filter (.\ (entry) (= key (fst entry)))
-    m))
-)
-(defun map.get(map key)
-    (maybe_head (map.get_all map key))
-)
-(defun map.update(m key fun)
-    (map.ins m key (maybe_head (map fun (map.get_all m key))))
-)
-(defun map.update_or(map key default fun)
-    (map.ins map key (fun (map.get_or map key default)))
-)
-(defun map.rem(map key)
-    (filter (.\ (entry) (/= key (fst entry))) map)
-)
-(defun map.ins(map key val)
-    (cons
-        `(#key #val)
-        (map.rem map key)
-    )
-)
-(defun map.keys(m)
-    (map fst m)
-)
-(def infty 10000000)
-
-(def key fst)
-(def val snd)
-
-'valves
-valves
-
-(def names (map name valves))
-'names
-names
-
 (defun repeat(amt list)
     (cond
         ((= 0 amt) nil)
@@ -559,16 +510,273 @@ names
     )
 )
 
-(defun make2(x) `(#x #x))
 
-(def edges (flatten (map (.\ (vertex) (map (.\ (neighbor) (list (name vertex) neighbor)) (conn vertex))) valves)))
-(def dist0 (fold (map.new) (map.ins .. .. 0) (map make2 names)))
-
-(defun smoler(a b)
+(defun pipeline(init funs)
     (cond
-        ((< a b) a)
-        (else    b)
+        (funs (pipeline ((hd funs) init) (tl funs)))
+        (else init)
     )
 )
+
+(defun unwrap(error value)
+    (cond
+        (value value)
+        (else (panic error))
+    )
+)
+
+(defmacro sg(instance field)
+    `(pipeline #instance (list
+        (filter
+            (.\ (entry) (= (fst entry) '#field))
+            ..
+        )
+        maybe_head
+        (unwrap '(missing field #field on struct) ..)
+        snd
+    ))
+)
+
+(defun si.(instance field value)
+    (cons (list field value) instance)
+)
+
+(defmacro si(instance field value)
+   `(cond
+        ((contains '#field (map fst #instance))
+            (panic `(the field #field already exists in the struct #instance)))
+        (else
+            (si. #instance '#field #value))
+    )
+)
+
+(defmacro su(instance field value)
+    `(map
+        (.\ (entry)
+            (cond
+                ((= '#field (fst entry))
+                    (list '#field #value))
+                (else entry)
+            )
+        )
+        #instance
+    )
+)
+
+(defun n_tuple?(n tup)
+    (cond
+        ((< n 0)        nil)
+        ((= 0 n)        (nil? tup))
+        ((pair? tup)    (n_tuple? (- n 1) (tl tup)))
+    )
+)
+
+(defun new.(fields)
+    (fold
+       nil
+       (.\ (struct new_field)
+           (progn
+               (assert_msg 
+                   (n_tuple? 2 new_field) 
+                  '(struct field should be a pair)) 
+               (si. struct (fst new_field) (eval (snd new_field)))
+           )
+       )
+       (rev fields)
+    )
+)
+
+(defmacro sn(fields)
+    (cond
+        ((list? fields)
+         `'#(fold
+                nil
+                (.\ (struct new_field)
+                    (progn
+                        (assert_msg 
+                            (n_tuple? 2 new_field) 
+                           '(struct field should be a pair)) 
+                        (si. struct (fst new_field) (eval (snd new_field)))
+                    )
+                )
+                (rev fields)
+            )
+        )
+        (else
+            (panic `(creating a new struct requires a list of key-value pairs (#fields))))
+    )
+)
+
+
+(assert (n_tuple? 0 nil))
+(assert (not (n_tuple? 1 nil)))
+(assert (not (n_tuple? 2 '(1 2 3))))
+(assert (n_tuple? 3 '(4 5 6)))
+
+(defun fun?(fun)
+    (cond
+        ((bfun? fun) true)
+        ((not (pair? fun)) nil)
+        ((= '.\ (fst fun)) true)
+    )
+)
+
+(assert (fun? int?))
+(assert (fun? sym?))
+(assert (fun? nil?))
+(assert (fun? pair?))
+(assert (fun? fun?))
+(assert (not (fun? 1)))
+(assert (not (fun? 'hehe)))
+
+(defun gtup?(typ?s els)
+    (cond
+        ((and (nil? typ?s) (nil? els))
+            true
+        )
+        ((and (pair? typ?s) (pair? els))
+            (let ty? (fst typ?s) (progn
+                (assert_msg (fun? ty?) (the type should be a function))
+                (cond
+                    ((not (ty? (fst els)))
+                        nil)
+                    (else
+                        (gtup? (tl typ?s) (tl els)))
+                )
+            ))
+        )
+    )
+)
+
+(assert (gtup? (ls int? int?) '(1 2)))
+(assert (not (gtup? (ls int? int?) '(1 2 3))))
+
+(defun glist?(ty? xs)
+    (cond
+        ((not (fun? ty?))
+            (panic `(ty? << #ty? >> should be a function.)))
+        ((nil? xs)
+            true)
+        ((not (pair? xs))
+            nil)
+        ((not (ty? (hd xs)))
+            nil)
+        (else
+            (glist? ty? (tl xs)))
+    )
+)
+
+(assert (glist? int? '(1 2 3 4)))
+(assert (glist? (.\ (_) nil) nil))
+(assert (not (glist? int? '(1 2 3 4 five))))
+(assert (not (glist? sym? '(1 2 3 4 five))))
+(assert (glist? sym? '(five six seven)))
+(assert (glist? sym? '(seven)))
+(assert (glist? sym? nil))
+
+; struct with each field having the same type
+(defun mono_struct?(typ? val)
+    (glist? (gtup? (ls sym? typ?) ..) val)
+)
+
+; struct where the fields have any type
+(defun any_struct?(val)
+    (mono_struct? any? val)
+)
+
+(assert (any_struct? nil))
+(assert (any_struct? (sn nil)))
+(sn ((x 1)))
+(assert (any_struct? (sn ((x 1)))))
+
+(defun struct?(typ val)
+    (cond
+        ; is the type actually a struct type?
+        ((not (mono_struct? fun? typ))
+            (panic `(type #typ is not a struct type)))
+
+        ; is the value a struct?
+        ((not (any_struct? val))
+            nil)
+        
+        ; are the variable names the same **and in the same order?**
+        ((/= (map fst typ) (map fst val))
+            nil)
+
+        ; check that the values correspond to the types
+        (else
+            (gtup? (map snd typ) (map snd val)))
+    )
+)
+
+'struct
+(def point (sn ((x 10) (y 20))))
+point
+
+(sn (
+    (sfx (+ 1 2))
+    (sfy 10)
+))
+
+(sg point x)
+
+(gtup?
+    (list int? int? int?)
+    '(1 2 3)
+)
+
+(assert (=
+    '(x y)
+    (map fst (sn ((x 10) (y 10))))
+))
+(assert (=
+    (map fst (sn ((x int?) (y int?))))
+    (map fst (sn ((x 10) (y 10))))
+))
+(assert (gtup?
+    (map snd (sn ((x int?) (y int?))))
+    (map snd (sn ((x 10) (y 10))))
+))
+(assert (any_struct?
+    (sn ((x int?) (y int?)))
+))
+(assert (any_struct?
+    (sn ((x 10) (y 10)))
+))
+
+(assert (struct?
+    (sn ((x int?) (y int?)))
+    (sn ((x 10) (y 20)))
+))
+
+(defmacro type(name def)
+   `(progn 
+        (defun #(symcat name '?) (val)
+            (struct? (sn #def) val)
+        )
+        (defmacro #(symcat name '.new) (vals)
+           `(let instance (sn #vals) (progn
+                (assert (##(symcat name '?) instance))
+                instance
+            ))
+        )
+    )
+)
+
+(type PPoint (
+    (x int?)
+    (y int?)
+))
+
+PPoint?
+PPoint.new
+
+(def q (PPoint.new(
+    (x 10)
+    (y 20)
+)))
+q
+(PPoint? q)
+
 
 '(end of program)

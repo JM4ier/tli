@@ -3,12 +3,12 @@
 
 static int debug = 0;
 
-static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
+static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int quote_depth)
 {
     switch (kind(code))
     {
     case T_SYM:
-        if (get_symbol(code) == get_symbol(formal_arg) && !inside_quote)
+        if (get_symbol(code) == get_symbol(formal_arg) && !quote_depth)
         {
             return quoted(arg);
         }
@@ -18,9 +18,9 @@ static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
         ptr hd = get_head(code);
         if (is_quote(hd))
         {
-            if (inside_quote)
+            if (quote_depth)
             {
-                return quoted(beta_reduce(elem(1, code), formal_arg, arg, inside_quote));
+                return quoted(beta_reduce(elem(1, code), formal_arg, arg, quote_depth));
             }
             else
             {
@@ -30,18 +30,19 @@ static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
         if (is_unquote(hd))
         {
             ptr body = get_tail(code);
-            body = beta_reduce(body, formal_arg, arg, false);
+            assert(quote_depth);
+            body = beta_reduce(body, formal_arg, arg, quote_depth - 1);
             // TODO no copying if same
             return new_cons(hd, body);
         }
         else if (is_quasiquote(hd))
         {
             ptr body = get_tail(code);
-            body = beta_reduce(body, formal_arg, arg, true);
+            body = beta_reduce(body, formal_arg, arg, quote_depth + 1);
             // TODO no copying if same
             return new_cons(hd, body);
         }
-        if (is_functionlike(hd) && !inside_quote)
+        if (is_functionlike(hd) && !quote_depth)
         {
             ptr arg_list = elem(1, code);
             ptr fun_body = elem(2, code);
@@ -56,7 +57,7 @@ static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
                 }
                 cursor = get_tail(cursor);
             }
-            fun_body = beta_reduce(fun_body, formal_arg, arg, inside_quote);
+            fun_body = beta_reduce(fun_body, formal_arg, arg, quote_depth);
             return new_list(3, hd, arg_list, fun_body);
         }
         else
@@ -64,8 +65,8 @@ static ptr beta_reduce(ptr code, ptr formal_arg, ptr arg, int inside_quote)
             ptr head = get_head(code);
             ptr tail = get_tail(code);
 
-            ptr new_head = beta_reduce(head, formal_arg, arg, inside_quote);
-            ptr new_tail = beta_reduce(tail, formal_arg, arg, inside_quote);
+            ptr new_head = beta_reduce(head, formal_arg, arg, quote_depth);
+            ptr new_tail = beta_reduce(tail, formal_arg, arg, quote_depth);
 
             if (new_head == head && new_tail == tail)
             {

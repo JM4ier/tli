@@ -108,7 +108,7 @@ static ptr mod(ptr i)
     static ptr name(ptr i)             \
     {                                  \
         i = get_head(i);               \
-        if (i < 0 || kind(i) != _kind) \
+        if (kind(i) != _kind) \
         {                              \
             return new_nil();          \
         }                              \
@@ -125,11 +125,11 @@ _CMP_(is_pair, T_CON)
 static ptr is_list(ptr i)
 {
     i = get_head(i);
-    while (i >= 0 && kind(i) == T_CON)
+    while (kind(i) == T_CON)
     {
         i = get_tail(i);
     }
-    if (i < 0 || kind(i) != T_NIL)
+    if (kind(i) != T_NIL)
     {
         return new_nil();
     }
@@ -144,17 +144,15 @@ static ptr eval_quote(ptr i)
     return get_head(i);
 }
 
-static ptr apply_quasiquote(ptr i)
+static ptr apply_quasiquote(ptr i, int depth)
 {
-    if (i < 0)
-    {
-        return i;
-    }
     switch (kind(i))
     {
     case T_SYM:
     case T_NIL:
     case T_INT:
+    case T_FUN:
+    case T_MAC:
         return i;
     case T_CON:
     {
@@ -162,20 +160,25 @@ static ptr apply_quasiquote(ptr i)
         ptr tail = get_tail(i);
         if (is_unquote(head))
         {
-            return eval(get_head(tail));
+            depth--;
+            if (depth == 0)
+            {
+                return eval(get_head(tail));
+            }
+        }
+        if (is_quasiquote(head))
+        {
+            depth++;
+        }
+        ptr new_head = apply_quasiquote(head, depth);
+        ptr new_tail = apply_quasiquote(tail, depth);
+        if (new_head == head && new_tail == tail)
+        {
+            return i;
         }
         else
         {
-            ptr new_head = apply_quasiquote(head);
-            ptr new_tail = apply_quasiquote(tail);
-            if (new_head == head && new_tail == tail)
-            {
-                return i;
-            }
-            else
-            {
-                return new_cons(new_head, new_tail);
-            }
+            return new_cons(new_head, new_tail);
         }
     }
     default:
@@ -184,20 +187,13 @@ static ptr apply_quasiquote(ptr i)
 }
 static ptr eval_quasiquote(ptr i)
 {
-    if (i < 0)
-    {
-        return i;
-    }
-    else
-    {
-        i = get_head(i);
-        return apply_quasiquote(i);
-    }
+    i = get_head(i);
+    return apply_quasiquote(i, 1);
 }
 
 static ptr eval_cond(ptr i)
 {
-    if (i < 0 || kind(i) == T_NIL)
+    if (kind(i) == T_NIL)
     {
         return i;
     }
@@ -324,6 +320,17 @@ static ptr read(ptr i)
     return parse(&buf_ptr);
 }
 
+static ptr b_eval(ptr i)
+{
+    return eval(get_head(i));
+}
+
+static ptr is_builtin_fun(ptr i)
+{
+    i = get_head(i);
+    return kind(i) == T_FUN ? new_true() : new_nil();
+}
+
 void register_builtins(void)
 {
 
@@ -352,6 +359,7 @@ void register_builtins(void)
     new_builtin_fn(&is_sym, "sym?");
     new_builtin_fn(&is_pair, "pair?");
     new_builtin_fn(&is_list, "list?");
+    new_builtin_fn(&is_builtin_fun, "bfun?");
 
     new_builtin_fn(&read, "read");
 
@@ -364,6 +372,8 @@ void register_builtins(void)
     new_builtin_fn(&panic, "panic");
     new_builtin_fn(&concat_sym, "symcat");
     new_builtin_fn(&progn, "progn");
+
+    new_builtin_fn(&b_eval, "eval");
 
     #undef new_builtin_mc
     #undef new_builtin_fn

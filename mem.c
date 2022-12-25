@@ -184,8 +184,6 @@ if it is a freshly marked value, it will also mark the child values
 */
 static void maybe_mark(ptr i)
 {
-    if (i < 0)
-        return;
     if (mem[i].gc != gen)
     {
         mem[i].gc = gen;
