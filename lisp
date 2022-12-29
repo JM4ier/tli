@@ -27,37 +27,47 @@
     )
 )
 
-(defun fold(init fun list)
+; left fold
+(defun foldl(init fun list)
     (cond
         ((pair? list)
-            (fold (fun init (hd list)) fun (tl list))
+            (foldl (fun init (hd list)) fun (tl list))
         )
-        (else
-            init)
+        (else init)
+    )
+)
+
+; right fold
+(defun foldr(init fun list)
+    (cond
+        ((pair? list)
+            (fun (hd list) (foldr init fun (tl list)))
+        )
+        (else init)
     )
 )
 
 (assert (= 10 
-    (fold 0 (.\ (x y) (+ x y)) '(1 2 3 4))
+    (foldl 0 (.\ (x y) (+ x y)) '(1 2 3 4))
 ))
 
 (defun flip(fun)
     (.\ (x y) (fun y x))
 )
 
-(def rev (fold nil (flip cons) ..))
+(def rev (foldl nil (flip cons) ..))
 
 (assert (= '(4 3 2 1)
     (rev '(1 2 3 4))
 ))
 
 (defun concat(xs ys)
-    (fold ys (flip cons) (rev xs))
+    (foldl ys (flip cons) (rev xs))
 )
 
 (assert (= '(1 2 3 4 5 6) (concat '(1 2 3) '(4 5 6))))
 
-(def flatten (fold nil concat ..))
+(def flatten (foldl nil concat ..))
 
 (assert (= 
     '(1 2 3 4)
@@ -110,21 +120,11 @@
     )
 )
 
-(defun and(a b)
-    (cond (a (cond (b true))))
-)
-(defun all(pred? list)
-    (fold true and (map pred? list))
-)
-
-(defun or(a b)
+(defun map(fun list)
     (cond
-        (a true)
-        (b true)
+        ((nil? list) list)
+        (else (cons (fun (hd list)) (map fun (tl list))))
     )
-)
-(defun any(pred? list)
-    (fold nil or (map pred? list))
 )
 
 (defun range(from to)
@@ -132,6 +132,24 @@
         ((= from to) nil)
         (else (cons from (range (+ 1 from) to)))
     )
+)
+(assert (= '(1 2 3) (range 1 4)))
+
+(defmacro and(a b)
+    `(cond (#a #b))
+)
+(defun all (pred? list)
+    (foldr true and (map pred? list))
+)
+
+(defmacro or(a b)
+    `(cond
+        (#a true)
+        (#b true)
+    )
+)
+(defun any(pred? list)
+    (foldl nil or (map pred? list))
 )
 
 (defun divides?(x y)
@@ -153,13 +171,6 @@
         ((nil? list)        list)
         ((pred? (hd list))  (cons (hd list) (filter pred? (tl list))))
         (else               (filter pred? (tl list)))
-    )
-)
-
-(defun map(fun list)
-    (cond
-        ((nil? list) list)
-        (else (cons (fun (hd list)) (map fun (tl list))))
     )
 )
 
@@ -339,11 +350,11 @@ Point
 (symcat 'he 'he 'ho)
 
 (typedfun max ((list? values))
-    (fold 0 (.\ (x y) (cond ((< x y) y) (else x))) values)
+    (foldl 0 (.\ (x y) (cond ((< x y) y) (else x))) values)
 )
 
 (typedfun min ((list? values))
-    (fold 1000000000 (.\ (x y) (cond ((< x y) x) (else y))) values)
+    (foldl 1000000000 (.\ (x y) (cond ((< x y) x) (else y))) values)
 )
 
 (defun split.aux(delimiter array)
@@ -366,9 +377,9 @@ Point
     (snd (split.aux delimiter (cons delimiter array)))
 )
 
-(typedfun sum((list? x)) (fold 0 + x))
+(typedfun sum((list? x)) (foldl 0 + x))
 (defun succ(x) (+ 1 x))
-(typedfun len((list? x)) (fold 0 succ x))
+(typedfun len((list? x)) (foldl 0 succ x))
 (defun pow(a b)
     (cond
         ((= 0 b) 1)
@@ -544,7 +555,7 @@ Point
 )
 
 (defun new.(fields)
-    (fold
+    (foldl
        nil
        (.\ (struct new_field)
            (progn
@@ -561,7 +572,7 @@ Point
 (defmacro sn(fields)
     (cond
         ((list? fields)
-         `'#(fold
+         `'#(foldl
                 nil
                 (.\ (struct new_field)
                     (progn
@@ -749,6 +760,20 @@ PPoint.new
 )))
 q
 (PPoint? q)
+
+(def nums (range 1 20000))
+(def nils (map nil? nums))
+
+(defun heavy_calc(folding _)
+    (folding true and nils)
+)
+
+'foldr
+(map (heavy_calc foldr ..) (range 1 40))
+
+'foldl
+(map (heavy_calc foldl ..) (range 1 40))
+
 
 
 '(end of program)

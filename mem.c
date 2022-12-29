@@ -130,7 +130,7 @@ void init(void)
         }
         else
         {
-            mem[i].next_free = ~0;
+            mem[i].next_free = i;
         }
     }
 
@@ -473,9 +473,15 @@ ptr get_nil(ptr i)
 void new_binding(ptr symbol, ptr expression)
 {
     sym_t *sym = &symbols[get_symbol(symbol)];
-    if (sym->binding != UNBOUND) {
+    if (sym->binding != UNBOUND)
+    {
         printf("Definitions cannot be shadowed.\nOffending symbol: %s.\n", &sym->name[0]);
         assert(initialized == MEM_INITIALIZING);
     }
     sym->binding = expression;
+}
+
+int mem_usage(void)
+{
+    return sizeof(mem) + sizeof(symbols);
 }

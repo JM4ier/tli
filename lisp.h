@@ -89,6 +89,8 @@ char *get_symbol_str(ptr s);
 ptr get_symbol_binding(ptr s);
 ptr (*get_fn_ptr(ptr i))(ptr);
 
+int mem_usage(void);
+
 // eval an expression
 // might have side effects
 ptr eval(ptr i);

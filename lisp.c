@@ -38,7 +38,7 @@ int main(void)
     lisp[fsize] = 0;
 
     init();
-    //dump();
+    // dump();
 
     char *lisp_ptr = &lisp[0];
     char **cursor = &lisp_ptr;
@@ -53,6 +53,17 @@ int main(void)
     }
 
     gc();
+
+    int memory = mem_usage();
+    char *unit[] = {"", "K", "M", "G", "T"};
+    char **mem_unit = &unit[0];
+    while (memory >= (1 << 13))
+    {
+        mem_unit++;
+        memory /= 1024;
+    }
+
+    printf("We used %d%sB of memory for the lisp values\n", memory, *mem_unit);
 
     return 0;
 }
