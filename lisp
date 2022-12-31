@@ -764,16 +764,50 @@ q
 (def nums (range 1 20000))
 (def nils (map nil? nums))
 
-(defun heavy_calc(folding _)
-    (folding true and nils)
+(defmacro math (formula)
+    (math1 formula)
 )
 
-'foldr
-(map (heavy_calc foldr ..) (range 1 40))
+(defun math_ops (form ops)
+    (cond
+        ((nil? ops)
+            (math2 form))
+        ((= 1 (len form))
+            (math2 form))
+        (else
+            (let op (hd ops)
+            (let rest_ops (tl ops)
+            (let splitted (split op form)
+            (cond
+                ((= 1 (len splitted))
+                    (math_ops (hd splitted) rest_ops)
+                )
+                (else
+                    (cons op (map (math_ops .. rest_ops) splitted))
+                )
+            )
+        ))))
+    )
+)
 
-'foldl
-(map (heavy_calc foldl ..) (range 1 40))
+(defun math1(form) (math_ops form '(+ - * = < > <= >=)))
 
+(defun math2 (form) (progn
+    (assert (list? form))
+    (assert (= 1 (len form)))
+    (let f (hd form)
+    (cond
+        ((int? f) f)
+        ((sym? f) f)
+        ((nil? f) (panic 'shouldnt-happen))
+        ((list? f) (math1 f))
+    )
+)))
+
+(def t1 33)
+(math (1 + 2 + 10 * 2))
+(math (t1))
+(math (2 * (1 + 10) + 1 - 4))
 
 
 '(end of program)
